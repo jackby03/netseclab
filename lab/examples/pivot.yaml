@@ -28,8 +28,7 @@ networks:
 
 nodes:
   - name: attacker
-    image: debian13
-    toolsets: [recon, sniff]
+    image: attacker
     links:
       - { net: ext, ip: 10.10.30.10 }
 
@@ -43,10 +42,7 @@ nodes:
       - { net: dmz, ip: 10.10.20.254 }
 
   - name: www
-    image: debian13
-    packages: [apache2, php, libapache2-mod-php]
-    startup: |
-      systemctl enable --now apache2
+    image: web
     links:
       - { net: dmz, ip: 10.10.20.10 }
     aliases: [www]
@@ -61,9 +57,6 @@ nodes:
 
   - name: mon
     image: debian13
-    packages: [prometheus-node-exporter]
-    startup: |
-      systemctl enable --now prometheus-node-exporter
     links:
       - { net: int-b, ip: 10.10.11.10 }
 

@@ -16,15 +16,13 @@ networks:
 
 nodes:
   - name: evil1
-    image: debian13
-    toolsets: [webfuzz, sniff]
+    image: attacker
     links:
       - { net: ext, ip: 10.20.0.30 }
 
   - name: fw
-    image: debian13
+    image: ids
     links: [ext, dmz]
-    packages: [nftables, suricata]
     sysctls:
       net.ipv4.ip_forward: 1
     assets:
@@ -35,11 +33,10 @@ nodes:
       suricata -D -i eth1 -S /etc/suricata/rules/lab.rules
 
   - name: www
-    image: debian13
+    image: web
     links:
       - { net: dmz, ip: 10.20.1.10 }
     aliases: [www]
-    packages: [apache2, php, libapache2-mod-php]
     assets:
       - { src: assets/fuzz/site, dst: /var/www/html }
     startup: |

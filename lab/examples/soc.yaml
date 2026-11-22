@@ -21,26 +21,21 @@ networks:
 
 nodes:
   - name: attacker
-    image: debian13
-    toolsets: [recon, webfuzz]
+    image: attacker
     links:
       - { net: ext, ip: 10.30.0.10 }
 
   - name: fw
-    image: debian13
+    image: ids
     links: [ext, dmz]
-    packages: [nftables, suricata]
     sysctls:
       net.ipv4.ip_forward: 1
 
   - name: victim
-    image: debian13
+    image: web
     links:
       - { net: dmz, ip: 10.30.1.10 }
     aliases: [www]
-    packages: [apache2, php, libapache2-mod-php]
-    startup: |
-      systemctl enable --now apache2
 
   - name: soc
     image: debian13

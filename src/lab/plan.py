@@ -11,6 +11,7 @@ La separación importa: el plan se puede revisar y testear sin tener Incus ni se
 
 from __future__ import annotations
 
+import copy
 import shlex
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -191,6 +192,10 @@ def build(
     profile: str | None = None,
     root: Path | None = None,
 ) -> Plan:
+    # Se trabaja sobre una copia: `build` no debe dejar la topología mutada (las
+    # imágenes resueltas, por ejemplo), o la segunda llamada recibe basura.
+    topo = copy.deepcopy(topo)
+
     nodes = topo.resolve_profile(profile)
     if not nodes:
         raise ValueError("el perfil no selecciona ningún nodo")
@@ -316,16 +321,21 @@ def build(
         if not paquetes:
             continue
         lista = " ".join(paquetes)
+        # El laboratorio está aislado: si la imagen ya trae el paquete no se toca apt,
+        # y si falta algo se avisa en vez de romper el arranque.
+        guion = (
+            'faltan=""; for p in ' + lista + '; do '
+            'dpkg -s "$p" >/dev/null 2>&1 || faltan="$faltan $p"; done; '
+            '[ -z "$faltan" ] && exit 0; '
+            "apt-get update -qq && DEBIAN_FRONTEND=noninteractive "
+            'apt-get install -y -qq $faltan || '
+            f'echo "AVISO: sin red, no se pudieron instalar:$faltan"'
+        )
         steps.append(
             Step(
                 "packages",
                 node=node.name,
-                argv=[
-                    "sh",
-                    "-c",
-                    "apt-get update -qq && "
-                    f"DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {lista}",
-                ],
+                argv=["sh", "-c", guion],
                 note=f"{node.name}: {lista}",
             )
         )

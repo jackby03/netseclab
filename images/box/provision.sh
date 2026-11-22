@@ -69,11 +69,54 @@ if ! incus storage list --format csv 2>/dev/null | grep -q .; then
   exit 1
 fi
 
-echo "== imágenes base cacheadas"
-# Arrancar y borrar una instancia deja la imagen en la caché local: luego funciona sin red.
-if ! incus image list --format csv 2>/dev/null | grep -q .; then
-  incus launch images:debian/13 warmup
-  incus delete warmup --force
+echo "== imágenes de nodo, con lo imprescindible dentro"
+# El laboratorio tiene que funcionar sin Internet, así que los nodos no pueden
+# instalar nada al arrancar: la imagen ya trae las herramientas comunes.
+imagen_existe() {
+  incus image list --format csv -c aliases 2>/dev/null | grep -q "$1"
+}
+
+if ! imagen_existe "lab-node-v1"; then
+  incus launch images:debian/13 proto-node --no-profiles
+  incus exec proto-node -- sh -c \
+    'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+       openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client'
+  incus stop proto-node
+  incus publish proto-node --alias lab-node-v1
+  incus delete proto-node --force
+fi
+
+if ! imagen_existe "lab-web-v1"; then
+  incus copy lab-node-v1 proto-web
+  incus start proto-web
+  incus exec proto-web -- sh -c \
+    'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+       apache2 php libapache2-mod-php'
+  incus exec proto-web -- sh -c 'a2enmod php8.4 >/dev/null 2>&1 || true; systemctl enable apache2'
+  incus stop proto-web
+  incus publish proto-web --alias lab-web-v1
+  incus delete proto-web --force
+fi
+
+if ! imagen_existe "lab-ids-v1"; then
+  incus copy lab-node-v1 proto-ids
+  incus start proto-ids
+  incus exec proto-ids -- sh -c \
+    'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq suricata'
+  incus stop proto-ids
+  incus publish proto-ids --alias lab-ids-v1
+  incus delete proto-ids --force
+fi
+
+if ! imagen_existe "lab-attacker-v1"; then
+  incus copy lab-node-v1 proto-attacker
+  incus start proto-attacker
+  incus exec proto-attacker -- sh -c \
+    'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+       masscan whatweb ffuf gobuster nikto dirb tshark tcpflow'
+  incus stop proto-attacker
+  incus publish proto-attacker --alias lab-attacker-v1
+  incus delete proto-attacker --force
 fi
 
 echo "== paquetes de los toolsets, para poder instalarlos sin Internet"

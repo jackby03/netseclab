@@ -55,16 +55,12 @@ nodes:
 
   - name: exta
     image: debian13
-    toolsets: [recon, sniff]
     links:
       - { net: ext, ip: 10.5.0.10 }
 
   - name: dmza
-    image: debian13
+    image: web
     aliases: [www]
-    packages: [apache2, php, libapache2-mod-php]
-    startup: |
-      systemctl enable --now apache2
     links:
       - { net: dmz, ip: 10.5.1.10 }
 
