@@ -39,9 +39,13 @@ checksum de la imagen base se verifica.
 ## Usarla
 
 1. Descomprime `netseclab-vmware.tar.gz` y abre `netseclab.vmx` con VMware.
-2. Entra por consola o por SSH con el usuario `lab` (sin contraseña: se entra por consola de VMware o
-   se añade tu clave pública al construir).
+2. Entra por la consola de VMware con el usuario **`lab`** y la contraseña **`netseclab`**.
+   Cámbiala en cuanto arranques: `passwd`.
 3. `lab --help`.
+
+El SSH está configurado solo con clave: la contraseña sirve para la consola, no para la red. La
+clave pública que autoriza el acceso es la que se genera durante la construcción
+(`build/box/id_ed25519`).
 
 ```bash
 lab up /opt/netseclab/lab/examples/fuzz-evasion.yaml
