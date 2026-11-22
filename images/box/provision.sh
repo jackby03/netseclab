@@ -5,6 +5,10 @@
 # funcionar sin Internet.
 set -euo pipefail
 
+# Este script se ejecuta desde un fichero, no por stdin, así que puede cerrar la entrada:
+# ningún comando de dentro (incus, apt) debe quedarse leyendo del canal de SSH.
+exec < /dev/null
+
 export DEBIAN_FRONTEND=noninteractive
 
 echo "== paquetes base"
@@ -16,8 +20,21 @@ apt-get install -y -qq \
 
 echo "== incus"
 systemctl enable --now incus.socket incus.service
+
+echo "== esperando al demonio de incus"
+for _ in $(seq 1 60); do
+  incus version >/dev/null 2>&1 && break
+  sleep 1
+done
+incus version >/dev/null 2>&1 || { echo "error: el demonio de incus no responde"; exit 1; }
+
 if ! incus storage list --format csv 2>/dev/null | grep -q .; then
+  echo "== inicializando incus"
   incus admin init --auto
+fi
+if ! incus storage list --format csv 2>/dev/null | grep -q .; then
+  echo "error: no se pudo crear el pool de almacenamiento"
+  exit 1
 fi
 
 echo "== imágenes base cacheadas"

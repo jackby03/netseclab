@@ -126,3 +126,19 @@ def test_ssh_y_scp_usan_la_opcion_de_puerto_correcta():
     assert 'scp "${SSH_OPTS[@]}" -P "$PUERTO_SSH"' in build
     # y el puerto no va dentro del array común
     assert "-p \"$PUERTO_SSH\")\n" not in build
+
+
+def test_el_provisionamiento_no_se_ejecuta_por_stdin():
+    """Con `bash -s` cualquier comando que lea stdin se come el resto del script."""
+    build = (CAJA / "build.sh").read_text(encoding="utf-8")
+    provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
+    assert "sudo bash /tmp/netseclab-provision.sh" in build
+    assert "sudo bash -s" not in build
+    assert "exec < /dev/null" in provision
+
+
+def test_se_espera_al_demonio_de_incus():
+    provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
+    assert "incus version >/dev/null 2>&1" in provision
+    assert "el demonio de incus no responde" in provision
+    assert "no se pudo crear el pool" in provision

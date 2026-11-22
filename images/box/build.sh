@@ -138,7 +138,10 @@ provisionar() {
       --exclude=build --exclude=.git --exclude=__pycache__ --exclude=research \
       pyproject.toml src lab docs README.md
   scp_vm -q "$WORK/netseclab-src.tar.gz" lab@127.0.0.1:/tmp/
-  ssh_vm lab@127.0.0.1 'sudo bash -s' < "$AQUI/provision.sh"
+  scp_vm -q "$AQUI/provision.sh" lab@127.0.0.1:/tmp/netseclab-provision.sh
+  # Se ejecuta desde un fichero, no por stdin: así ningún comando de dentro
+  # (incus, apt) puede consumir el resto del script.
+  ssh_vm lab@127.0.0.1 'sudo bash /tmp/netseclab-provision.sh'
 }
 
 apagar() {
