@@ -90,7 +90,10 @@ def test_el_vmx_no_pide_anidamiento():
     assert "ethernet1.present" not in claves
     # no se exige virtualización anidada
     assert "vhv.enable" not in claves
-    assert claves["scsi0:0.fileName"] == "netseclab.vmdk"
+    # controladores conservadores: el kernel cloud de Debian no siempre trae pvscsi ni vmxnet3
+    assert claves["sata0:0.fileName"] == "netseclab.vmdk"
+    assert claves["ethernet0.virtualDev"] == "e1000"
+    assert "scsi0.virtualDev" not in claves
 
 
 def test_el_empaquetado_lleva_lo_que_espera_el_provisionamiento():
