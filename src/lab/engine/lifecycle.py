@@ -12,12 +12,16 @@ from ..plan import Plan, Step
 from .incus import Incus
 from .runner import Result, Runner
 
-# Errores que significan "ya está hecho", no "ha fallado"
+# Errores que significan "ya está hecho", no "ha fallado". Incus no siempre usa el
+# mismo mensaje: al relanzar un `incus launch` sobre una instancia existente lo que
+# devuelve es una violación de unicidad de su base de datos.
 IGNORABLES = (
     "already exists",
     "already running",
     "already defined",
+    "already in use",
     "database integrity",
+    "unique constraint failed",
 )
 
 

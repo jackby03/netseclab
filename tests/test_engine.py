@@ -40,6 +40,17 @@ def test_lo_que_ya_existe_no_es_un_fallo(plan):
     assert not outcome.fallos
 
 
+def test_relanzar_una_instancia_existente_no_es_un_fallo(plan):
+    """Incus responde con una violación de unicidad, no con 'already exists'."""
+    runner = RecordingRunner(
+        {"incus launch": (1, "", "UNIQUE constraint failed: instances.project_id, instances.name")}
+    )
+    outcome = execute(plan, runner)
+    assert outcome.ok
+    assert outcome.omitidos == len(plan.nodes)
+    assert not outcome.fallos
+
+
 def test_un_error_de_verdad_para_el_plan(plan):
     runner = RecordingRunner({"device add": (1, "", "invalid mac address")})
     outcome = execute(plan, runner)
