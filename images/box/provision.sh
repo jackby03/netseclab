@@ -136,9 +136,15 @@ construir_imagen() {
 }
 
 if ! imagen_existe "lab-node-v1"; then
-  # dnsmasq lo necesita cualquier nodo que sirva DHCP o DNS en un escenario
+  # dnsmasq lo necesita cualquier nodo que sirva DHCP o DNS en un escenario.
+  # Las credenciales son las mismas que en la caja: root y user1, con netseclab.
   construir_imagen node images:debian/13 \
-    "openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client dnsmasq"
+    "openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client dnsmasq" \
+    'echo "root:netseclab" | chpasswd; \
+     id user1 >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo user1; \
+     echo "user1:netseclab" | chpasswd; \
+     sed -i "s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/" /etc/ssh/sshd_config; \
+     systemctl enable ssh'
 fi
 
 if ! imagen_existe "lab-web-v1"; then

@@ -46,6 +46,18 @@ checksum de la imagen base se verifica.
    Cámbiala en cuanto arranques: `passwd`.
 3. `lab --help`.
 
+### Credenciales
+
+| Dónde | Usuario | Contraseña |
+|---|---|---|
+| La caja (consola de VMware) | `lab` | `netseclab` |
+| Los nodos del laboratorio | `root` | `netseclab` |
+| Los nodos del laboratorio | `user1` | `netseclab` |
+
+`user1` es el usuario no privilegiado con `sudo`, igual que en el NETinVM original. El SSH de los
+nodos acepta contraseña, para que las prácticas de SSH funcionen. La caja, en cambio, solo acepta
+clave.
+
 El SSH está configurado solo con clave: la contraseña sirve para la consola, no para la red. La
 clave pública que autoriza el acceso es la que se genera durante la construcción
 (`build/box/id_ed25519`).
