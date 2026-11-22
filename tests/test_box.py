@@ -73,6 +73,12 @@ def test_la_semilla_es_valida():
     assert datos["users"][0]["name"] == "lab"
     assert datos["users"][0]["sudo"].startswith("ALL=")
 
+    # La contraseña tiene que ir DENTRO del usuario: `password:` en la raíz se
+    # aplica al usuario por defecto de la imagen y deja a `lab` sin contraseña.
+    assert datos["users"][0]["plain_text_passwd"] == "netseclab"
+    assert "password" not in datos
+    assert "chpasswd" not in datos
+
     meta = yaml.safe_load((CAJA / "seed" / "meta-data").read_text(encoding="utf-8"))
     assert meta["local-hostname"] == "netseclab"
 

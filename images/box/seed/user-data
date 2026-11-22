@@ -10,14 +10,11 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
     lock_passwd: false
+    # La contraseña va EN el usuario: `password:` a nivel raíz se aplica al
+    # usuario por defecto de la imagen, no a este. El SSH sigue siendo solo con clave.
+    plain_text_passwd: netseclab
     ssh_authorized_keys:
       - __PUBKEY__
-
-# Contraseña para poder entrar por la consola de VMware.
-# El acceso por SSH sigue siendo solo con clave (ssh_pwauth: false).
-password: netseclab
-chpasswd:
-  expire: false
 
 ssh_pwauth: false
 disable_root: true
