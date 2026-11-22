@@ -81,47 +81,46 @@ echo "== imágenes de nodo, con lo imprescindible dentro"
 # El laboratorio tiene que funcionar sin Internet, así que los nodos no pueden
 # instalar nada al arrancar: la imagen ya trae las herramientas comunes.
 imagen_existe() {
-  incus image list --format csv -c aliases 2>/dev/null | grep -q "$1"
+  # `incus image info <alias>` resuelve el alias si existe; es más fiable que
+  # filtrar el listado, cuyo formato CSV cambia entre versiones.
+  incus image info "$1" >/dev/null 2>&1
+}
+
+construir_imagen() {
+  local nombre="$1" base="$2" paquetes="$3" extra="${4:-}"
+  # Los restos de un intento anterior estorban: se borran antes de empezar.
+  incus delete "proto-$nombre" --force >/dev/null 2>&1 || true
+  incus launch "$base" "proto-$nombre"
+  incus exec "proto-$nombre" -- sh -c \
+    "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $paquetes"
+  if [ -n "$extra" ]; then
+    incus exec "proto-$nombre" -- sh -c "$extra"
+  fi
+  incus stop "proto-$nombre"
+  # Si el alias se quedó de un intento a medias, se retira para poder publicar.
+  incus image alias delete "lab-$nombre-v1" >/dev/null 2>&1 || true
+  incus publish "proto-$nombre" --alias "lab-$nombre-v1"
+  incus delete "proto-$nombre" --force
 }
 
 if ! imagen_existe "lab-node-v1"; then
-  incus launch images:debian/13 proto-node
-  incus exec proto-node -- sh -c \
-    'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-       openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client'
-  incus stop proto-node
-  incus publish proto-node --alias lab-node-v1
-  incus delete proto-node --force
+  construir_imagen node images:debian/13 \
+    "openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client"
 fi
 
 if ! imagen_existe "lab-web-v1"; then
-  incus launch lab-node-v1 proto-web
-  incus exec proto-web -- sh -c \
-    'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-       apache2 php libapache2-mod-php'
-  incus exec proto-web -- sh -c 'a2enmod php8.4 >/dev/null 2>&1 || true; systemctl enable apache2'
-  incus stop proto-web
-  incus publish proto-web --alias lab-web-v1
-  incus delete proto-web --force
+  construir_imagen web lab-node-v1 \
+    "apache2 php libapache2-mod-php" \
+    'a2enmod php8.4 >/dev/null 2>&1 || true; systemctl enable apache2'
 fi
 
 if ! imagen_existe "lab-ids-v1"; then
-  incus launch lab-node-v1 proto-ids
-  incus exec proto-ids -- sh -c \
-    'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq suricata'
-  incus stop proto-ids
-  incus publish proto-ids --alias lab-ids-v1
-  incus delete proto-ids --force
+  construir_imagen ids lab-node-v1 "suricata"
 fi
 
 if ! imagen_existe "lab-attacker-v1"; then
-  incus launch lab-node-v1 proto-attacker
-  incus exec proto-attacker -- sh -c \
-    'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-       masscan whatweb ffuf gobuster nikto dirb tshark tcpflow'
-  incus stop proto-attacker
-  incus publish proto-attacker --alias lab-attacker-v1
-  incus delete proto-attacker --force
+  construir_imagen attacker lab-node-v1 \
+    "masscan whatweb ffuf gobuster nikto dirb tshark tcpflow"
 fi
 
 echo "== paquetes de los toolsets, para poder instalarlos sin Internet"

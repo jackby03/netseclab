@@ -99,7 +99,19 @@ aceleracion() {
 }
 
 arrancar() {
-  [ -f "$WORK/qemu.pid" ] && kill "$(cat "$WORK/qemu.pid")" 2>/dev/null || true
+  # Si quedó una VM de un intento anterior, se apaga con educación: matarla a lo
+  # bruto deja el ext4 sucio y luego se monta en solo lectura.
+  if [ -f "$WORK/qemu.pid" ] && kill -0 "$(cat "$WORK/qemu.pid")" 2>/dev/null; then
+    log "la VM del intento anterior sigue en marcha: apagándola"
+    ssh_vm lab@127.0.0.1 'sudo poweroff' 2>/dev/null || true
+    for _ in $(seq 1 60); do
+      kill -0 "$(cat "$WORK/qemu.pid")" 2>/dev/null || break
+      sleep 1
+    done
+    kill "$(cat "$WORK/qemu.pid")" 2>/dev/null || true
+    sleep 1
+  fi
+
   log "sirviendo la semilla en 127.0.0.1:$PUERTO_HTTP"
   ( cd "$WORK/seed" && python3 -m http.server "$PUERTO_HTTP" --bind 127.0.0.1 >/dev/null 2>&1 ) &
   echo $! > "$WORK/http.pid"
