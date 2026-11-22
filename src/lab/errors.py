@@ -26,8 +26,8 @@ class LabErrors(Exception):
 
     def _render(self) -> str:
         n = len(self.issues)
-        cabecera = "1 problema" if n == 1 else f"{n} problemas"
-        lineas = [f"{cabecera} en la topología:"]
+        cabecera = "1 issue" if n == 1 else f"{n} issues"
+        lineas = [f"{cabecera} in the topology:"]
         lineas += [f"  - {i}" for i in self.issues]
         return "\n".join(lineas)
 

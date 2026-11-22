@@ -20,14 +20,14 @@ EJERCICIO = Path(__file__).resolve().parents[1] / "lab" / "exercises" / "06-fuzz
 def test_validate_ok(capsys):
     assert cli.main(["validate", str(EJEMPLOS / "example.net.yaml")]) == 0
     salida = capsys.readouterr().out
-    assert "OK" in salida and "7 nodos" in salida
+    assert "OK" in salida and "7 nodes" in salida
 
 
 def test_validate_detecta_errores(workdir, capsys):
     ruta = workdir / "rota.yaml"
     ruta.write_text("version: 1\nname: rota\nnetworks: {}\nnodes: []\n", encoding="utf-8")
     assert cli.main(["validate", str(ruta)]) == 1
-    assert "NO VÁLIDA" in capsys.readouterr().err
+    assert "NOT VALID" in capsys.readouterr().err
 
 
 def test_render_json(capsys):
@@ -43,7 +43,7 @@ def test_render_table(capsys):
         == 0
     )
     salida = capsys.readouterr().out
-    assert "REDES" in salida and "NODOS" in salida
+    assert "NETWORKS" in salida and "NODES" in salida
     assert "mini" in salida
 
 
@@ -65,7 +65,7 @@ def test_perfil_inexistente(capsys):
     with pytest.raises(SystemExit) as exc:
         cli.main(["up", str(EJEMPLOS / "example.net.yaml"), "--profile", "noexiste", "--dry-run"])
     assert exc.value.code == 2
-    assert "no existe" in capsys.readouterr().err
+    assert "does not exist" in capsys.readouterr().err
 
 
 def test_images_y_toolsets(capsys):
@@ -106,7 +106,7 @@ def test_up_con_runner_simulado(monkeypatch, capsys):
     codigo = cli.main(["up", str(EJEMPLOS / "fuzz-evasion.yaml")])
     salida = capsys.readouterr().out
     assert codigo == 0
-    assert "snapshot 'initial' creado" in salida
+    assert "snapshot 'initial' created" in salida
     assert runner.contiene("incus network create nvm-ext")
     assert runner.contiene("snapshot create evil1 initial")
 
@@ -116,7 +116,7 @@ def test_up_informa_de_los_fallos(monkeypatch, capsys):
     monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     assert cli.main(["up", str(EJEMPLOS / "fuzz-evasion.yaml")]) == 1
-    assert "falló" in capsys.readouterr().err
+    assert "failed" in capsys.readouterr().err
 
 
 def test_reset_sin_snapshot_avisa(monkeypatch, capsys):
@@ -124,7 +124,7 @@ def test_reset_sin_snapshot_avisa(monkeypatch, capsys):
     monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     assert cli.main(["reset", str(EJEMPLOS / "fuzz-evasion.yaml")]) == 1
-    assert "no existe el snapshot" in capsys.readouterr().err
+    assert "snapshot 'initial' does not exist" in capsys.readouterr().err
 
 
 def test_reset_restaura(monkeypatch, capsys):
@@ -133,12 +133,12 @@ def test_reset_restaura(monkeypatch, capsys):
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     assert cli.main(["reset", str(EJEMPLOS / "fuzz-evasion.yaml")]) == 0
     assert runner.contiene("snapshot restore evil1 initial")
-    assert "restaurado" in capsys.readouterr().out
+    assert "restored" in capsys.readouterr().out
 
 
 def test_capture_red_desconocida(capsys):
     assert cli.main(["capture", str(EJEMPLOS / "fuzz-evasion.yaml"), "--net", "noexiste"]) == 2
-    assert "no existe" in capsys.readouterr().err
+    assert "does not exist" in capsys.readouterr().err
 
 
 def test_capture_se_ejecuta(monkeypatch, capsys, workdir):
@@ -180,8 +180,8 @@ def test_check_suspendido(monkeypatch, capsys, workdir):
     codigo = cli.main(["check", str(EJERCICIO)])
     salida = capsys.readouterr().out
     assert codigo == 1
-    assert "FALLA" in salida
-    assert "7 alertas" in salida
+    assert "FAIL" in salida
+    assert "7 alerts" in salida
 
 
 def test_answer_guarda_la_respuesta(workdir, monkeypatch, capsys):
@@ -193,8 +193,8 @@ def test_answer_guarda_la_respuesta(workdir, monkeypatch, capsys):
 def test_down_con_perfil_inexistente_no_revienta(capsys):
     assert cli.main(["down", str(EJEMPLOS / "example.net.yaml"), "--profile", "noexiste"]) == 2
     salida = capsys.readouterr().err
-    assert "no existe" in salida
-    assert "Disponibles" in salida
+    assert "does not exist" in salida
+    assert "Available" in salida
 
 
 def test_down_dry_run_lista_las_instancias(capsys):

@@ -54,12 +54,12 @@ def plan_capture(
                 ["sudo", "rm", "-f", DESTINO_LOCAL],
             ],
             salida=salida,
-            nota=f"capturando en el puerto espejo {puerto} durante {segundos}s",
+            nota=f"capturing on mirror port {puerto} for {segundos}s",
         )
 
     nodo, enlace = _nodo_del_segmento(topo, red)
     if nodo is None:
-        raise ValueError(f"no hay ningún nodo en la red {red.name!r}")
+        raise ValueError(f"no node in network {red.name!r}")
 
     return CapturePlan(
         red=red.name,
@@ -82,7 +82,7 @@ def plan_capture(
             ["incus", "file", "pull", f"{nodo.name}{DESTINO_REMOTO}", str(salida)],
         ],
         salida=salida,
-        nota=f"capturando en {nodo.name}/{enlace.ifname} durante {segundos}s (modo {red.mode})",
+        nota=f"capturing on {nodo.name}/{enlace.ifname} for {segundos}s (mode {red.mode})",
     )
 
 
@@ -91,5 +91,5 @@ def run_capture(plan: CapturePlan, runner) -> tuple[bool, str]:
         res = runner.run(argv)
         # tcpdump termina con 124 al agotarse el timeout: es lo esperado
         if not res.ok and res.code != 124:
-            return False, (res.err or res.out).strip() or f"falló: {' '.join(argv)}"
+            return False, (res.err or res.out).strip() or f"failed: {' '.join(argv)}"
     return True, plan.nota

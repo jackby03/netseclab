@@ -42,7 +42,7 @@ class Step:
     def exec_argv(self) -> list[str]:
         """Lista de argumentos lista para ejecutar sin pasar por un shell."""
         if self.kind == "push":
-            raise ValueError("un push no es un comando")
+            raise ValueError("a push is not a command")
         if self.kind == "tar":
             origen = shlex.quote(self.argv[0])
             destino = shlex.quote(self.path)
@@ -202,7 +202,7 @@ def build(
 
     nodes = topo.resolve_profile(profile)
     if not nodes:
-        raise ValueError("el perfil no selecciona ningún nodo")
+        raise ValueError("the profile does not select any node")
 
     imagenes = load_images(root)
     toolsets = load_toolsets(root)
@@ -223,7 +223,7 @@ def build(
         Step(
             "perfil",
             argv=["incus", "profile", "create", PERFIL_NODOS],
-            note=f"perfil {PERFIL_NODOS} para los nodos (si ya existe, se ignora)",
+            note=f"profile {PERFIL_NODOS} for the nodes (ignored if it already exists)",
         )
     )
     steps.append(
@@ -240,7 +240,7 @@ def build(
                 "path=/",
                 "pool=default",
             ],
-            note="disco raíz de los nodos",
+            note="root disk of the nodes",
         )
     )
 
@@ -269,7 +269,7 @@ def build(
             Step(
                 "network",
                 argv=argv,
-                note=f"red {net.name} ({net.cidr}, {net.type}, modo {net.mode})",
+                note=f"network {net.name} ({net.cidr}, {net.type}, mode {net.mode})",
             )
         )
 
@@ -288,7 +288,7 @@ def build(
                     f"--config=limits.cpu={node.resources.cpus}",
                     f"--config=limits.memory={node.resources.memory}",
                 ],
-                note=f"nodo {node.name} desde {node.image}",
+                note=f"node {node.name} from {node.image}",
             )
         )
         if node.resources.disk:
@@ -304,7 +304,7 @@ def build(
                         "root",
                         f"size={node.resources.disk}",
                     ],
-                    note=f"{node.name}: disco de {node.resources.disk}",
+                    note=f"{node.name}: disk of {node.resources.disk}",
                 )
             )
         if node.privileged:
@@ -312,7 +312,7 @@ def build(
                 Step(
                     "node",
                     argv=["incus", "config", "set", node.name, "security.privileged", "true"],
-                    note="privilegios completos dentro del nodo (necesario para algunas herramientas)",
+                    note="full privileges inside the node (needed by some tools)",
                 )
             )
         for link in node.links:
@@ -346,7 +346,7 @@ def build(
         for nombre in node.toolsets:
             if nombre not in toolsets:
                 raise ValueError(
-                    f"nodes.{node.name}.toolsets: el toolset {nombre!r} no existe en lab/toolsets.yaml"
+                    f"nodes.{node.name}.toolsets: toolset {nombre!r} does not exist in lab/toolsets.yaml"
                 )
             paquetes += toolsets[nombre]
         paquetes += node.packages
@@ -418,7 +418,7 @@ def build(
             pasos.append(
                 Step("files", node=node.name,
                      argv=["mkdir", "-p", "/var/log/lab"],
-                     note="directorio de logs del SOC")
+                     note="SOC log directory")
             )
         elif telemetry.necesita(node, topo):
             servidor = topo.node(topo.telemetry.soc or "")
@@ -453,7 +453,7 @@ def build(
                     )
                 )
             else:
-                raise FileNotFoundError(f"nodes.{node.name}.assets: no existe {origen}")
+                raise FileNotFoundError(f"nodes.{node.name}.assets: {origen} does not exist")
         steps += pasos
 
     # ── activación
@@ -465,7 +465,7 @@ def build(
                 "enable",
                 node=node.name,
                 argv=["systemctl", "daemon-reload"],
-                note=f"{node.name}: recargar systemd",
+                note=f"{node.name}: reload systemd",
             )
         )
         unidades = ["lab-net.service"]
@@ -484,7 +484,7 @@ def build(
                 "enable",
                 node=node.name,
                 argv=["hostnamectl", "set-hostname", node.hostname or node.name],
-                note=f"{node.name}: nombre del sistema",
+                note=f"{node.name}: system hostname",
             )
         )
         if node.dhcp_server or node.dns_server:
@@ -502,7 +502,7 @@ def build(
                     "enable",
                     node=node.name,
                     argv=["nft", "-f", "/etc/lab/fw.nft"],
-                    note=f"{node.name}: reglas de cortafuegos",
+                    note=f"{node.name}: firewall rules",
                 )
             )
         if telemetry.es_soc(node, topo) or telemetry.necesita(node, topo):
@@ -511,7 +511,7 @@ def build(
                     "enable",
                     node=node.name,
                     argv=["systemctl", "restart", "rsyslog"],
-                    note=f"{node.name}: reenvío de logs",
+                    note=f"{node.name}: log forwarding",
                 )
             )
 
@@ -529,7 +529,7 @@ def build(
                 Step(
                     "post",
                     argv=["sudo", "sh", "-c", guion],
-                    note=f"{net.name}: modo hub (sin aprendizaje de MAC, todo se inunda)",
+                    note=f"{net.name}: hub mode (no MAC learning, everything is flooded)",
                 )
             )
         elif net.mode == "mirror":
@@ -546,7 +546,7 @@ def build(
                 Step(
                     "post",
                     argv=["sudo", "sh", "-c", guion],
-                    note=f"{net.name}: puerto espejo {puerto} (OVS)",
+                    note=f"{net.name}: mirror port {puerto} (OVS)",
                 )
             )
 

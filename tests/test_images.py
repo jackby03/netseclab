@@ -55,7 +55,7 @@ def test_los_assets_de_la_receta_existen():
 def test_una_receta_con_clave_desconocida_falla(workdir):
     ruta = workdir / "rara.yaml"
     ruta.write_text("name: rara\nbase: debian13\npaquetes: [nmap]\n", encoding="utf-8")
-    with pytest.raises(LabErrors, match="clave desconocida"):
+    with pytest.raises(LabErrors, match="unknown key"):
         load_recipe(ruta)
 
 

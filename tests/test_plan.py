@@ -158,6 +158,6 @@ def test_perfil_mini_reduce_el_plan(example_net):
 
 def test_un_toolset_desconocido_falla(example_net):
     example_net.node("exta").toolsets = ["noexiste"]
-    with pytest.raises(ValueError, match="no existe"):
+    with pytest.raises(ValueError, match="does not exist"):
         build(example_net)
     example_net.node("exta").toolsets = ["recon", "sniff"]

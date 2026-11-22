@@ -74,5 +74,5 @@ telemetry: { soc: noexiste }
 """,
         encoding="utf-8",
     )
-    with pytest.raises(LabErrors, match="no existe"):
+    with pytest.raises(LabErrors, match="does not exist"):
         load(ruta)

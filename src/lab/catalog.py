@@ -20,9 +20,9 @@ def _load(path: Path) -> dict:
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        raise LabErrors([Issue(str(path), f"YAML no válido: {exc}")]) from exc
+        raise LabErrors([Issue(str(path), f"invalid YAML: {exc}")]) from exc
     if not isinstance(data, dict):
-        raise LabErrors([Issue(str(path), "se esperaba un mapa en la raíz")])
+        raise LabErrors([Issue(str(path), "expected a map at the root")])
     return data
 
 
@@ -55,8 +55,8 @@ def resolve_image(alias: str, images: dict[str, str], where: str = "image") -> s
         [
             Issue(
                 where,
-                f"la imagen {alias!r} no está en el catálogo. Añádela a lab/images.yaml "
-                f"o usa una referencia completa (images:debian/13).",
+                f"image {alias!r} is not in the catalog. Add it to lab/images.yaml "
+                f"or use a full reference (images:debian/13).",
             )
         ]
     )

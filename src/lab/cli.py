@@ -49,10 +49,10 @@ def _plan(args) -> Plan:
     try:
         return build(topo, profile=getattr(args, "profile", None))
     except KeyError:
-        disponibles = ", ".join(sorted(topo.profiles)) or "(ninguno)"
+        disponibles = ", ".join(sorted(topo.profiles)) or "(none)"
         print(
-            f"error: el perfil {args.profile!r} no existe en {args.file}. "
-            f"Disponibles: {disponibles}",
+            f"error: profile {args.profile!r} does not exist in {args.file}. "
+            f"Available: {disponibles}",
             file=sys.stderr,
         )
         raise SystemExit(2)
@@ -71,9 +71,9 @@ def _runner() -> Runner:
 def _sin_incus() -> bool:
     if shutil.which("incus") is None:
         print(
-            "error: no se encuentra el comando `incus`.\n"
-            "  Este comando tiene que ejecutarse dentro de la caja (la VM con Incus).\n"
-            "  Para ver lo que haría, usa: lab render <topología>",
+            "error: the `incus` command was not found.\n"
+            "  This command has to run inside the box (the VM with Incus).\n"
+            "  To see what it would do, run: lab render <topology>",
             file=sys.stderr,
         )
         return True
@@ -82,29 +82,29 @@ def _sin_incus() -> bool:
 
 def _tabla(plan: Plan) -> str:
     lineas = [
-        f"laboratorio: {plan.topology.name}   dominio: {plan.topology.domain}"
-        + (f"   perfil: {plan.profile}" if plan.profile else ""),
+        f"lab: {plan.topology.name}   domain: {plan.topology.domain}"
+        + (f"   profile: {plan.profile}" if plan.profile else ""),
         "",
-        "REDES",
-        f"  {'nombre':<10} {'cidr':<16} {'tipo':<9} {'modo':<7} {'bridge':<14} puerta",
+        "NETWORKS",
+        f"  {'name':<10} {'cidr':<16} {'type':<9} {'mode':<7} {'bridge':<14} gateway",
     ]
     for net in plan.used_networks():
         lineas.append(
             f"  {net.name:<10} {net.cidr:<16} {net.type:<9} {net.mode:<7} "
             f"{net.bridge:<14} {net.gateway or '-'}"
         )
-    lineas += ["", "NODOS", f"  {'nombre':<10} {'imagen':<22} interfaces"]
+    lineas += ["", "NODES", f"  {'name':<10} {'image':<22} interfaces"]
     for node in plan.nodes:
         bocas = ", ".join(f"{l.ifname}={l.ip}/{l.prefix}" for l in node.links)
         lineas.append(f"  {node.name:<10} {node.image:<22} {bocas}")
-    lineas += ["", f"{len(plan.steps)} pasos"]
+    lineas += ["", f"{len(plan.steps)} steps"]
     return "\n".join(lineas)
 
 
 def _informe(resultados: list[tuple[str, bool, str]]) -> str:
     lineas = []
     for descripcion, ok, detalle in resultados:
-        marca = "OK   " if ok else "FALLA"
+        marca = "OK   " if ok else "FAIL"
         lineas.append(f"  [{marca}] {descripcion}")
         if detalle:
             lineas.append(f"          {detalle}")
@@ -122,7 +122,7 @@ def cmd_validate(args) -> int:
         if any(c in patron for c in "*?["):
             encontradas = sorted(glob(patron))
             if not encontradas:
-                print(f"{patron}: no coincide con ningún fichero", file=sys.stderr)
+                print(f"{patron}: no files match", file=sys.stderr)
                 rutas.append(patron)
             rutas.extend(encontradas)
         else:
@@ -142,19 +142,19 @@ def cmd_validate(args) -> int:
             if es_ejercicio:
                 ejercicio = load_exercise(ruta)
                 print(
-                    f"{ruta}: OK — ejercicio {ejercicio.id} con "
-                    f"{len(ejercicio.checks)} comprobaciones"
+                    f"{ruta}: OK - exercise {ejercicio.id} with "
+                    f"{len(ejercicio.checks)} checks"
                 )
                 continue
             topo = load(ruta)
         except LabErrors as exc:
-            print(f"{ruta}: NO VÁLIDA", file=sys.stderr)
+            print(f"{ruta}: NOT VALID", file=sys.stderr)
             print(str(exc), file=sys.stderr)
             fallos += 1
             continue
         print(
-            f"{ruta}: OK — {len(topo.nodes)} nodos, {len(topo.networks)} redes, "
-            f"{len(topo.policies)} políticas"
+            f"{ruta}: OK - {len(topo.nodes)} nodes, {len(topo.networks)} networks, "
+            f"{len(topo.policies)} policies"
         )
     return 0 if fallos == 0 else 1
 
@@ -172,7 +172,7 @@ def cmd_render(args) -> int:
         if args.format == "table":
             print(_tabla(plan))
         print(
-            f"escritos {len(escritos)} ficheros en {destino} (más lab.sh y plan.json)",
+            f"wrote {len(escritos)} files to {destino} (plus lab.sh and plan.json)",
             file=sys.stderr,
         )
         return 0
@@ -193,7 +193,7 @@ def cmd_up(args) -> int:
     if args.dry_run:
         for step in plan.steps:
             if step.kind != "push":
-                print(f"→ {step.command()}")
+                print(f"-> {step.command()}")
         return 0
 
     if _sin_incus():
@@ -209,12 +209,12 @@ def cmd_up(args) -> int:
         etiqueta = step.note or step.phase
         print(f"  [{hechos:>2}/{total}] {etiqueta}", flush=True)
 
-    print("ejecutando el plan (Ctrl-C para interrumpir; volver a lanzarlo continúa):")
+    print("running the plan (Ctrl-C to interrupt; run it again to continue):")
     outcome = execute(plan, _runner(), seguir=args.keep_going, on_step=progreso)
     print()
     print(outcome.resumen())
     for comando, error in outcome.fallos:
-        print(f"  falló: {comando}", file=sys.stderr)
+        print(f"  failed: {comando}", file=sys.stderr)
         if error:
             print(f"          {error}", file=sys.stderr)
 
@@ -222,11 +222,11 @@ def cmd_up(args) -> int:
         incus = Incus(_runner())
         fallos = take_snapshot(incus, [n.name for n in plan.nodes], SNAPSHOT_INICIAL)
         if fallos:
-            print("aviso: no se pudo crear el snapshot inicial:", file=sys.stderr)
+            print("warning: could not create the initial snapshot:", file=sys.stderr)
             for fallo in fallos:
                 print(f"  {fallo}", file=sys.stderr)
         else:
-            print(f"snapshot {SNAPSHOT_INICIAL!r} creado: `lab reset` vuelve aquí")
+            print(f"snapshot {SNAPSHOT_INICIAL!r} created: `lab reset` returns here")
     return 0 if outcome.ok else 1
 
 
@@ -235,16 +235,16 @@ def cmd_down(args) -> int:
     try:
         nombres = list(args.names) or [n.name for n in topo.resolve_profile(args.profile)]
     except KeyError:
-        disponibles = ", ".join(sorted(topo.profiles)) or "(ninguno)"
+        disponibles = ", ".join(sorted(topo.profiles)) or "(none)"
         print(
-            f"error: el perfil {args.profile!r} no existe en {args.file}. "
-            f"Disponibles: {disponibles}",
+            f"error: profile {args.profile!r} does not exist in {args.file}. "
+            f"Available: {disponibles}",
             file=sys.stderr,
         )
         return 2
     if args.dry_run:
         for nombre in nombres:
-            print(f"→ incus stop {nombre}")
+            print(f"-> incus stop {nombre}")
         return 0
     if _sin_incus():
         return 3
@@ -252,7 +252,7 @@ def cmd_down(args) -> int:
     fallos = 0
     for nombre in nombres:
         res = incus._run("stop", nombre)
-        print(f"{nombre}: {'parado' if res.ok else (res.err.strip() or 'error')}")
+        print(f"{nombre}: {'stopped' if res.ok else (res.err.strip() or 'error')}")
         fallos += 0 if res.ok else 1
     return 0 if fallos == 0 else 1
 
@@ -263,9 +263,9 @@ def cmd_status(args) -> int:
     incus = Incus(_runner())
     instancias = incus.listar()
     if not instancias:
-        print("no hay instancias")
+        print("no instances")
         return 0
-    print(f"{'nombre':<12} {'estado':<12} {'tipo':<10} ipv4")
+    print(f"{'name':<12} {'state':<12} {'type':<10} ipv4")
     for inst in instancias:
         print(f"{inst.name:<12} {inst.status:<12} {inst.type:<10} {', '.join(inst.ips) or '-'}")
     return 0
@@ -276,6 +276,21 @@ def cmd_console(args) -> int:
         return 3
     import os
 
+    instancias = {i.name: i for i in Incus(_runner()).listar()}
+    instancia = instancias.get(args.name)
+    if instancia is None:
+        print(f"error: node {args.name!r} does not exist", file=sys.stderr)
+        return 1
+    if instancia.status.lower() != "running":
+        print(
+            f"{args.name} is not running; showing its log instead. "
+            "Bring the lab up to get an interactive console.",
+            file=sys.stderr,
+        )
+        os.execvp("incus", ["incus", "console", "--show-log", args.name])
+        return 0  # pragma: no cover
+
+    print(f"Connecting to {args.name}. To leave: Ctrl-a, then q.", file=sys.stderr, flush=True)
     os.execvp("incus", ["incus", "console", args.name])
     return 0  # pragma: no cover
 
@@ -290,7 +305,7 @@ def cmd_snapshot(args) -> int:
         for fallo in fallos:
             print(f"  {fallo}", file=sys.stderr)
         return 1
-    print(f"snapshot {args.name!r} creado en {len(plan.nodes)} nodos")
+    print(f"snapshot {args.name!r} created on {len(plan.nodes)} nodes")
     return 0
 
 
@@ -304,12 +319,12 @@ def cmd_reset(args) -> int:
         for fallo in fallos:
             print(f"  {fallo}", file=sys.stderr)
         print(
-            f"\n¿No existe el snapshot {args.name!r}? Créalo con `lab up` "
-            f"(hace {SNAPSHOT_INICIAL!r} al terminar) o con `lab snapshot {args.file}`.",
+            f"\nSnapshot {args.name!r} does not exist? Create it with `lab up` "
+            f"(it takes {SNAPSHOT_INICIAL!r} at the end) or with `lab snapshot {args.file}`.",
             file=sys.stderr,
         )
         return 1
-    print(f"laboratorio restaurado a {args.name!r} en {len(plan.nodes)} nodos")
+    print(f"lab restored to {args.name!r} on {len(plan.nodes)} nodes")
     return 0
 
 
@@ -317,7 +332,7 @@ def cmd_capture(args) -> int:
     topo = _cargar(args.file)
     if args.net not in topo.networks:
         print(
-            f"error: la red {args.net!r} no existe. Disponibles: "
+            f"error: network {args.net!r} does not exist. Available: "
             f"{', '.join(sorted(topo.networks))}",
             file=sys.stderr,
         )
@@ -331,7 +346,7 @@ def cmd_capture(args) -> int:
     if not ok:
         print(f"error: {detalle}", file=sys.stderr)
         return 1
-    print(f"{detalle} → {salida}")
+    print(f"{detalle} -> {salida}")
     return 0
 
 
@@ -345,7 +360,7 @@ def cmd_check(args) -> int:
     try:
         topo = load(ejercicio.lab)
     except LabErrors as exc:
-        print(f"el laboratorio del ejercicio no es válido:\n{exc}", file=sys.stderr)
+        print(f"the exercise lab is not valid:\n{exc}", file=sys.stderr)
         return 2
 
     if _sin_incus():
@@ -359,13 +374,13 @@ def cmd_check(args) -> int:
         if ok:
             resultados.append((check.describe(), True, detalle))
         elif check.message:
-            resultados.append((check.describe(), False, f"{check.message.strip()}\n          detalle: {detalle}"))
+            resultados.append((check.describe(), False, f"{check.message.strip()}\n          detail: {detalle}"))
         else:
             resultados.append((check.describe(), False, detalle))
 
     aciertos = sum(1 for _, ok, _ in resultados if ok)
-    print(f"{ejercicio.id} — {ejercicio.title}")
-    print(f"{aciertos}/{len(resultados)} comprobaciones superadas\n")
+    print(f"{ejercicio.id} - {ejercicio.title}")
+    print(f"{aciertos}/{len(resultados)} checks passed\n")
     print(_informe(resultados))
     return 0 if aciertos == len(resultados) else 1
 
@@ -377,7 +392,7 @@ def cmd_answer(args) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     ruta = write_answer(ejercicio, args.text)
-    print(f"respuesta guardada en {ruta}")
+    print(f"answer saved to {ruta}")
     return 0
 
 
@@ -387,8 +402,8 @@ def cmd_web(args) -> int:
         try:
             nodos = [n.name for n in topo.resolve_profile(args.profile)]
         except KeyError:
-            disponibles = ", ".join(sorted(topo.profiles)) or "(ninguno)"
-            print(f"error: el perfil {args.profile!r} no existe. Disponibles: {disponibles}", file=sys.stderr)
+            disponibles = ", ".join(sorted(topo.profiles)) or "(none)"
+            print(f"error: profile {args.profile!r} does not exist. Available: {disponibles}", file=sys.stderr)
             return 2
     else:
         if _sin_incus():
@@ -396,17 +411,17 @@ def cmd_web(args) -> int:
         nodos = [i.name for i in Incus(_runner()).listar()]
 
     if not nodos:
-        print("error: no hay nodos que ofrecer", file=sys.stderr)
+        print("error: no nodes to offer", file=sys.stderr)
         return 1
 
     from .web import make_server, serve
 
     servidor = make_server(nodos, host=args.host, port=args.port, token=args.token)
     host, puerto = servidor.server_address[:2]
-    print(f"consolas en http://{host}:{puerto}  ({len(nodos)} nodos)")
+    print(f"consoles at http://{host}:{puerto}  ({len(nodos)} nodes)")
     if args.token:
-        print("token activado: la URL tiene que llevarlo en el parámetro token")
-    print("Ctrl-C para parar")
+        print("token enabled: the URL must carry it in the token parameter")
+    print("Ctrl-C to stop")
     serve(servidor)
     return 0
 
@@ -419,7 +434,7 @@ def cmd_image(args) -> int:
             return 3
         imagenes = listar_imagenes(_runner())
         if not imagenes:
-            print("no hay imágenes propias; construye una con `lab image build <receta>`")
+            print("no custom images; build one with `lab image build <recipe>`")
             return 0
         for imagen in imagenes:
             print(imagen)
@@ -432,7 +447,7 @@ def cmd_image(args) -> int:
         if not res.ok:
             print(res.err.strip() or res.out.strip(), file=sys.stderr)
             return 1
-        print(f"imagen {args.ref} borrada")
+        print(f"image {args.ref} deleted")
         return 0
 
     try:
@@ -447,11 +462,11 @@ def cmd_image(args) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    print(f"imagen {receta.referencia} desde {receta.base} ({len(pasos)} pasos)")
+    print(f"image {receta.referencia} from {receta.base} ({len(pasos)} steps)")
     if args.dry_run:
         for paso in pasos:
             if paso.kind != "push":
-                print(f"→ {paso.command()}")
+                print(f"-> {paso.command()}")
         return 0
 
     if _sin_incus():
@@ -463,11 +478,11 @@ def cmd_image(args) -> int:
     resultado = execute(plan_falso, _runner(), seguir=args.keep_going)
     print(resultado.resumen())
     for comando, error in resultado.fallos:
-        print(f"  falló: {comando}", file=sys.stderr)
+        print(f"  failed: {comando}", file=sys.stderr)
         if error:
             print(f"          {error}", file=sys.stderr)
     if resultado.ok:
-        print(f"lista: `lab image ls` debería mostrar {receta.referencia}")
+        print(f"ready: `lab image ls` should show {receta.referencia}")
     return 0 if resultado.ok else 1
 
 
@@ -479,14 +494,14 @@ def cmd_images(args) -> int:
 
 def cmd_toolsets(args) -> int:
     for nombre, paquetes in sorted(load_toolsets().items()):
-        print(f"{nombre:<10} {len(paquetes):>2} paquetes  {' '.join(paquetes)}")
+        print(f"{nombre:<10} {len(paquetes):>2} packages  {' '.join(paquetes)}")
     return 0
 
 
 def cmd_init(args) -> int:
     destino = Path(args.name)
     if destino.exists():
-        print(f"error: {destino} ya existe", file=sys.stderr)
+        print(f"error: {destino} already exists", file=sys.stderr)
         return 1
     destino.mkdir(parents=True)
     plantilla = (Path(__file__).resolve().parents[2] / "lab" / "examples" / "pivot.yaml").read_text(
@@ -494,7 +509,7 @@ def cmd_init(args) -> int:
     )
     plantilla = plantilla.replace("name: pivot-lab", f"name: {destino.name}", 1)
     (destino / "topology.yaml").write_text(plantilla, encoding="utf-8")
-    print(f"creado {destino}/topology.yaml — edítalo y ejecuta: lab up {destino}/topology.yaml")
+    print(f"created {destino}/topology.yaml - edit it and run: lab up {destino}/topology.yaml")
     return 0
 
 
@@ -504,100 +519,100 @@ def cmd_init(args) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="lab",
-        description="Laboratorio de seguridad en redes: ligero, declarativo y reproducible.",
+        description="Network security lab: lightweight, declarative and reproducible.",
     )
     parser.add_argument("--version", action="version", version=f"netseclab {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    p = sub.add_parser("validate", help="comprueba una o varias topologías")
+    p = sub.add_parser("validate", help="validate one or more topologies")
     p.add_argument("files", nargs="+")
     p.set_defaults(func=cmd_validate)
 
-    p = sub.add_parser("render", help="muestra o guarda lo que haría `up`")
+    p = sub.add_parser("render", help="show or save what `up` would do")
     p.add_argument("file")
     p.add_argument("--profile")
     p.add_argument("--format", choices=["shell", "json", "table"], default="table")
-    p.add_argument("--out", help="escribe los ficheros generados en un directorio")
+    p.add_argument("--out", help="write the generated files to a directory")
     p.set_defaults(func=cmd_render)
 
-    p = sub.add_parser("up", help="levanta el laboratorio")
+    p = sub.add_parser("up", help="bring the lab up")
     p.add_argument("file")
     p.add_argument("--profile")
-    p.add_argument("--dry-run", action="store_true", help="solo muestra los comandos")
-    p.add_argument("--keep-going", action="store_true", help="no parar en el primer error")
-    p.add_argument("--no-snapshot", action="store_true", help="no crear el snapshot inicial")
+    p.add_argument("--dry-run", action="store_true", help="only print the commands")
+    p.add_argument("--keep-going", action="store_true", help="do not stop on the first error")
+    p.add_argument("--no-snapshot", action="store_true", help="do not create the initial snapshot")
     p.set_defaults(func=cmd_up)
 
-    p = sub.add_parser("down", help="para el laboratorio")
+    p = sub.add_parser("down", help="stop the lab")
     p.add_argument("file")
     p.add_argument("names", nargs="*")
     p.add_argument("--profile")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_down)
 
-    p = sub.add_parser("status", help="estado de las instancias")
+    p = sub.add_parser("status", help="status of the instances")
     p.set_defaults(func=cmd_status)
 
-    p = sub.add_parser("console", help="consola interactiva de un nodo")
+    p = sub.add_parser("console", help="interactive console of a node")
     p.add_argument("name")
     p.set_defaults(func=cmd_console)
 
-    p = sub.add_parser("snapshot", help="fotografía el estado actual del laboratorio")
+    p = sub.add_parser("snapshot", help="snapshot the current lab state")
     p.add_argument("file")
     p.add_argument("--name", default="snapshot")
     p.add_argument("--profile")
     p.set_defaults(func=cmd_snapshot)
 
-    p = sub.add_parser("reset", help="vuelve al estado de un snapshot")
+    p = sub.add_parser("reset", help="return to the state of a snapshot")
     p.add_argument("file")
     p.add_argument("--name", default=SNAPSHOT_INICIAL)
     p.add_argument("--profile")
     p.set_defaults(func=cmd_reset)
 
-    p = sub.add_parser("capture", help="captura el tráfico de un segmento")
+    p = sub.add_parser("capture", help="capture traffic on a segment")
     p.add_argument("file")
-    p.add_argument("--net", required=True, help="nombre de la red")
+    p.add_argument("--net", required=True, help="network name")
     p.add_argument("--seconds", type=int, default=15)
-    p.add_argument("--out", help="fichero pcap de salida")
+    p.add_argument("--out", help="output pcap file")
     p.set_defaults(func=cmd_capture)
 
-    p = sub.add_parser("check", help="corrige un ejercicio")
+    p = sub.add_parser("check", help="grade an exercise")
     p.add_argument("file")
     p.set_defaults(func=cmd_check)
 
-    p = sub.add_parser("answer", help="guarda la respuesta de razonamiento de un ejercicio")
+    p = sub.add_parser("answer", help="save the reasoning answer of an exercise")
     p.add_argument("file")
     p.add_argument("text")
     p.set_defaults(func=cmd_answer)
 
-    p = sub.add_parser("web", help="consolas de los nodos en el navegador")
-    p.add_argument("file", nargs="?", help="topología; si se omite, lista las instancias de Incus")
+    p = sub.add_parser("web", help="node consoles in the browser")
+    p.add_argument("file", nargs="?", help="topology; if omitted, list the Incus instances")
     p.add_argument("--profile")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8080)
-    p.add_argument("--token", help="exige este token en la URL (recomendado si lo abres en red)")
+    p.add_argument("--token", help="require this token in the URL (recommended if you open it on a network)")
     p.set_defaults(func=cmd_web)
 
-    p = sub.add_parser("images", help="catálogo de imágenes")
+    p = sub.add_parser("images", help="image catalog")
     p.set_defaults(func=cmd_images)
 
-    p = sub.add_parser("image", help="imágenes propias: construir, listar y borrar")
+    p = sub.add_parser("image", help="custom images: build, list and delete")
     sub_img = p.add_subparsers(dest="accion", required=True)
-    b = sub_img.add_parser("build", help="construye y publica una imagen desde una receta")
+    b = sub_img.add_parser("build", help="build and publish an image from a recipe")
     b.add_argument("recipe")
     b.add_argument("--dry-run", action="store_true")
     b.add_argument("--keep-going", action="store_true")
     b.set_defaults(func=cmd_image)
-    ls = sub_img.add_parser("ls", help="lista las imágenes propias")
+    ls = sub_img.add_parser("ls", help="list custom images")
     ls.set_defaults(func=cmd_image)
-    rm = sub_img.add_parser("rm", help="borra una imagen")
+    rm = sub_img.add_parser("rm", help="delete an image")
     rm.add_argument("ref")
     rm.set_defaults(func=cmd_image)
 
-    p = sub.add_parser("toolsets", help="sets de herramientas disponibles")
+    p = sub.add_parser("toolsets", help="available tool sets")
     p.set_defaults(func=cmd_toolsets)
 
-    p = sub.add_parser("init", help="crea la plantilla de una topología")
+    p = sub.add_parser("init", help="create a topology template")
     p.add_argument("name")
     p.set_defaults(func=cmd_init)
 

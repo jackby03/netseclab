@@ -40,7 +40,7 @@ class SubprocessRunner:
         except FileNotFoundError as exc:
             return Result(127, "", str(exc))
         except subprocess.TimeoutExpired:
-            return Result(124, "", "tiempo agotado")
+            return Result(124, "", "timed out")
         return Result(proc.returncode, proc.stdout, proc.stderr)
 
 

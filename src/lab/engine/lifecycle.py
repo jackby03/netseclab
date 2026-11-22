@@ -41,11 +41,11 @@ class Outcome:
         return not self.fallos
 
     def resumen(self) -> str:
-        partes = [f"{self.ejecutados} pasos ejecutados"]
+        partes = [f"{self.ejecutados} steps run"]
         if self.omitidos:
-            partes.append(f"{self.omitidos} ya estaban")
+            partes.append(f"{self.omitidos} already present")
         if self.fallos:
-            partes.append(f"{len(self.fallos)} fallos")
+            partes.append(f"{len(self.fallos)} failures")
         return ", ".join(partes)
 
 
@@ -100,7 +100,7 @@ def _carpeta_temporal() -> Path:
         except OSError:
             shutil.rmtree(carpeta, ignore_errors=True)
             continue
-    raise RuntimeError("no hay un directorio temporal escribible para `lab`")
+    raise RuntimeError("no writable temporary directory for `lab`")
 
 
 def execute(
@@ -165,7 +165,7 @@ def restore_snapshot(
     fallos: list[str] = []
     for nodo in nodos:
         if not incus.tiene_snapshot(nodo, nombre):
-            fallos.append(f"{nodo}: no existe el snapshot {nombre!r}")
+            fallos.append(f"{nodo}: snapshot {nombre!r} does not exist")
             continue
         # parar puede fallar si ya estaba parada: no es un problema
         incus._run("stop", nodo)

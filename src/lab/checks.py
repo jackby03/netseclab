@@ -41,25 +41,25 @@ class Check:
 
     def describe(self) -> str:
         if self.kind == "reachable":
-            return f"{self.params['from']} alcanza {self.params['target']}: {self.params['expect']}"
+            return f"{self.params['from']} reaches {self.params['target']}: {self.params['expect']}"
         if self.kind == "port-state":
             return (
-                f"desde {self.params['from']}, {self.params['target']}:{self.params['port']} "
-                f"está {self.params['expect']}"
+                f"from {self.params['from']}, {self.params['target']}:{self.params['port']} "
+                f"is {self.params['expect']}"
             )
         if self.kind == "http-status":
-            return f"{self.params['from']} obtiene {self.params['expect']} de {self.params['url']}"
+            return f"{self.params['from']} gets {self.params['expect']} from {self.params['url']}"
         if self.kind == "file":
             return f"{self.params['node']}:{self.params['path']} {self.params['expect']}"
         if self.kind == "ids-alerts":
             return (
-                f"alertas del IDS con origen {self.params.get('src', 'cualquiera')}: "
+                f"IDS alerts from {self.params.get('src', 'any')}: "
                 f"{self.params['count']}"
             )
         if self.kind == "capture":
-            return f"la captura de {self.params['net']} contiene {self.params['contains']!r}"
+            return f"capture of {self.params['net']} contains {self.params['contains']!r}"
         if self.kind == "answer":
-            return f"la respuesta contiene {self.params['contains']!r}"
+            return f"answer contains {self.params['contains']!r}"
         return self.kind
 
 
@@ -93,8 +93,8 @@ def _rechazar_parametros(pares: dict[str, str], permitidas: set[str], tipo: str,
             [
                 Issue(
                     where,
-                    f"parámetros no admitidos en {tipo}: {', '.join(sobran)}. "
-                    f"Se admiten: {', '.join(sorted(permitidas))}",
+                    f"parameters not allowed in {tipo}: {', '.join(sobran)}. "
+                    f"Allowed: {', '.join(sorted(permitidas))}",
                 )
             ]
         )
@@ -104,7 +104,7 @@ def parse_check(raw: dict, where: str) -> Check:
     mensaje = str(raw.get("message", "") or "")
     expresion = raw.get("assert")
     if not isinstance(expresion, str):
-        raise LabErrors([Issue(where, "una comprobación necesita 'assert' o una forma estructurada")])
+        raise LabErrors([Issue(where, "a check needs 'assert' or a structured form")])
 
     texto = expresion.strip()
 
@@ -149,7 +149,7 @@ def parse_check(raw: dict, where: str) -> Check:
     if m:
         pares = _pares(m.group(1))
         if "count" not in pares:
-            raise LabErrors([Issue(where, "ids-alerts necesita 'count'")])
+            raise LabErrors([Issue(where, "ids-alerts needs 'count'")])
         _rechazar_parametros(pares, {"node", "src", "count", "log"}, "ids-alerts", where)
         return Check(
             "ids-alerts",
@@ -166,7 +166,7 @@ def parse_check(raw: dict, where: str) -> Check:
     if m:
         pares = _pares(m.group(2) or "")
         if "contains" not in pares:
-            raise LabErrors([Issue(where, "capture necesita 'contains'")])
+            raise LabErrors([Issue(where, "capture needs 'contains'")])
         _rechazar_parametros(pares, {"contains", "file"}, "capture", where)
         return Check(
             "capture",
@@ -186,7 +186,7 @@ def parse_check(raw: dict, where: str) -> Check:
         [
             Issue(
                 where,
-                f"no entiendo la comprobación {texto!r}. Formas admitidas: "
+                f"unknown check {texto!r}. Supported forms: "
                 "reachable, port-state, http-status, file, ids-alerts, capture, answer",
             )
         ]
@@ -226,31 +226,31 @@ def run_check(
         alcanza = res.code == 0
         return (
             alcanza == p["expect"],
-            f"alcanzable={alcanza} (esperado {p['expect']})",
+            f"reachable={alcanza} (expected {p['expect']})",
         )
 
     if check.kind == "port-state":
         guion = f"exec 3<>/dev/tcp/{p['target']}/{p['port']}"
         res = incus.ejecutar(p["from"], "timeout", "2", "bash", "-c", guion)
         estado = "open" if res.code == 0 else ("filtered" if res.code == TIMEOUT else "closed")
-        return estado == p["expect"], f"estado={estado} (esperado {p['expect']})"
+        return estado == p["expect"], f"state={estado} (expected {p['expect']})"
 
     if check.kind == "http-status":
         res = incus.ejecutar(
             p["from"], "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5", p["url"]
         )
         codigo = _entero(res.out)
-        return codigo == p["expect"], f"HTTP {codigo} (esperado {p['expect']})"
+        return codigo == p["expect"], f"HTTP {codigo} (expected {p['expect']})"
 
     if check.kind == "file":
         res = incus.ejecutar(p["node"], "test", "-e", p["path"])
         existe = res.code == 0
-        return existe == (p["expect"] == "exists"), f"existe={existe} (esperado {p['expect']})"
+        return existe == (p["expect"] == "exists"), f"exists={existe} (expected {p['expect']})"
 
     if check.kind == "ids-alerts":
         nodo = p["node"] or _nodo_por_defecto_para_ids(topo)
         if nodo is None:
-            return False, "no hay ningún nodo con IDS en la topología"
+            return False, "no node with IDS in the topology"
         filtro = ""
         if p["src"]:
             filtro = " | grep -c " + shlex.quote(f'"src_ip":"{p["src"]}"')
@@ -258,19 +258,19 @@ def run_check(
         guion += " 2>/dev/null" + (filtro + "" if filtro else " | wc -l") + " || true"
         res = incus.ejecutar(nodo, "sh", "-c", guion)
         total = _entero(res.out)
-        return total == p["count"], f"{total} alertas (esperado {p['count']})"
+        return total == p["count"], f"{total} alerts (expected {p['count']})"
 
     if check.kind == "capture":
         ruta = Path(p["file"])
         if not ruta.exists():
-            return False, f"no existe la captura {ruta}; ejecuta antes `lab capture {p['net']}`"
+            return False, f"capture {ruta} does not exist; run `lab capture {p['net']}` first"
         res = incus.runner.run(["grep", "-a", "-q", p["contains"], str(ruta)])
-        return res.ok, f"contiene {p['contains']!r}: {res.ok}"
+        return res.ok, f"contains {p['contains']!r}: {res.ok}"
 
     if check.kind == "answer":
         if not respuesta.strip():
-            return False, "no hay respuesta guardada; usa `lab answer <ejercicio> \"...\"`"
+            return False, "no saved answer; use `lab answer <exercise> \"...\"`"
         contiene = p["contains"].lower() in respuesta.lower()
-        return contiene, f"contiene {p['contains']!r}: {contiene}"
+        return contiene, f"contains {p['contains']!r}: {contiene}"
 
-    return False, f"tipo de comprobación desconocido: {check.kind}"
+    return False, f"unknown check type: {check.kind}"

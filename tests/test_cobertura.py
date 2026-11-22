@@ -58,15 +58,40 @@ def test_status_sin_instancias(monkeypatch, capsys):
     monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     assert cli.main(["status"]) == 0
-    assert "no hay instancias" in capsys.readouterr().out
+    assert "no instances" in capsys.readouterr().out
 
 
-def test_console_delega_en_incus(monkeypatch):
+def test_console_delega_en_incus(monkeypatch, capsys):
     llamado: list[tuple] = []
+    instancias = json.dumps([{"name": "dmza", "status": "RUNNING", "type": "container"}])
+    runner = RecordingRunner({"list --format json": (0, instancias, "")})
+    monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     monkeypatch.setattr(os, "execvp", lambda prog, args: llamado.append((prog, args)))
     assert cli.main(["console", "dmza"]) == 0
     assert llamado == [("incus", ["incus", "console", "dmza"])]
+    # y avisa de cómo salir
+    assert "Ctrl-a" in capsys.readouterr().err
+
+
+def test_console_de_un_nodo_parado_muestra_el_log(monkeypatch, capsys):
+    llamado: list[tuple] = []
+    instancias = json.dumps([{"name": "dmza", "status": "STOPPED", "type": "container"}])
+    runner = RecordingRunner({"list --format json": (0, instancias, "")})
+    monkeypatch.setattr(cli, "_runner", lambda: runner)
+    monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
+    monkeypatch.setattr(os, "execvp", lambda prog, args: llamado.append((prog, args)))
+    assert cli.main(["console", "dmza"]) == 0
+    assert llamado == [("incus", ["incus", "console", "--show-log", "dmza"])]
+    assert "not running" in capsys.readouterr().err
+
+
+def test_console_de_un_nodo_inexistente(monkeypatch, capsys):
+    runner = RecordingRunner({"list --format json": (0, "[]", "")})
+    monkeypatch.setattr(cli, "_runner", lambda: runner)
+    monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
+    assert cli.main(["console", "noexiste"]) == 1
+    assert "does not exist" in capsys.readouterr().err
 
 
 def test_snapshot_crea_en_todos_los_nodos(monkeypatch, capsys):
@@ -144,7 +169,7 @@ nodes:
     )
     from lab.errors import LabErrors
 
-    with pytest.raises(LabErrors, match="destino no válido"):
+    with pytest.raises(LabErrors, match="invalid destination"):
         load(ruta)
 
 
@@ -208,7 +233,7 @@ nodes:
     )
     from lab.errors import LabErrors
 
-    with pytest.raises(LabErrors, match="entre 1 y 4094"):
+    with pytest.raises(LabErrors, match="between 1 and 4094"):
         load(ruta)
 
 
@@ -228,7 +253,7 @@ nodes:
     )
     from lab.errors import LabErrors
 
-    with pytest.raises(LabErrors, match="clave desconocida"):
+    with pytest.raises(LabErrors, match="unknown key"):
         load(ruta)
 
 

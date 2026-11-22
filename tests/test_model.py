@@ -85,7 +85,7 @@ nodes:
     )
     with pytest.raises(LabErrors) as exc:
         load(ruta)
-    assert "ya la usa" in str(exc.value)
+    assert "already in use by" in str(exc.value)
 
 
 def test_ip_fuera_de_la_red(workdir):
@@ -101,7 +101,7 @@ nodes:
     )
     with pytest.raises(LabErrors) as exc:
         load(ruta)
-    assert "no pertenece" in str(exc.value)
+    assert "is not inside" in str(exc.value)
 
 
 def test_red_inexistente(workdir):
@@ -117,7 +117,7 @@ nodes:
     )
     with pytest.raises(LabErrors) as exc:
         load(ruta)
-    assert "no está definida" in str(exc.value)
+    assert "is not defined" in str(exc.value)
 
 
 def test_dhcp_sin_servidor(workdir):
@@ -149,7 +149,7 @@ nodes:
     )
     with pytest.raises(LabErrors) as exc:
         load(ruta)
-    assert "al menos un enlace" in str(exc.value)
+    assert "at least one link" in str(exc.value)
 
 
 def test_perfil_selecciona_nodos():
@@ -184,7 +184,7 @@ nodes:
     with pytest.raises(LabErrors) as exc:
         load(ruta)
     texto = str(exc.value)
-    assert "clave desconocida" in texto
+    assert "unknown key" in texto
     assert "links" in texto  # sugiere la clave correcta
 
 

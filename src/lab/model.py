@@ -35,7 +35,7 @@ def _as_dict(value: Any, where: str, sc: Scope) -> dict:
     if value is None:
         return {}
     if not isinstance(value, dict):
-        sc.add(where, "se esperaba un mapa clave: valor")
+        sc.add(where, "expected a key: value map")
         return {}
     return value
 
@@ -65,8 +65,8 @@ def _rechazar_desconocidas(data: dict, tipo: str, where: str, sc: Scope) -> None
     for clave in data:
         if clave not in permitidas:
             sugerencia = _mas_parecida(str(clave), permitidas)
-            extra = f"; ¿querías decir {sugerencia!r}?" if sugerencia else ""
-            sc.add(f"{where}.{clave}", f"clave desconocida{extra}")
+            extra = f"; did you mean {sugerencia!r}?" if sugerencia else ""
+            sc.add(f"{where}.{clave}", f"unknown key{extra}")
 
 
 def _mas_parecida(clave: str, candidatas) -> str | None:
@@ -81,7 +81,7 @@ def _as_list(value: Any, where: str, sc: Scope) -> list:
         return []
     if isinstance(value, (list, tuple)):
         return list(value)
-    sc.add(where, "se esperaba una lista")
+    sc.add(where, "expected a list")
     return []
 
 
@@ -89,7 +89,7 @@ def _parse_cidr(text: str, where: str, sc: Scope) -> ipaddress.IPv4Network | Non
     try:
         return ipaddress.ip_network(str(text), strict=False)
     except ValueError as exc:
-        sc.add(where, f"CIDR no válido ({exc})")
+        sc.add(where, f"invalid CIDR ({exc})")
         return None
 
 
@@ -97,7 +97,7 @@ def _parse_ip(text: str, where: str, sc: Scope) -> ipaddress.IPv4Address | None:
     try:
         return ipaddress.ip_address(str(text))
     except ValueError as exc:
-        sc.add(where, f"dirección IP no válida ({exc})")
+        sc.add(where, f"invalid IP address ({exc})")
         return None
 
 
@@ -108,12 +108,12 @@ def _parse_routes(value: Any, where: str, sc: Scope) -> list[tuple[str, str]]:
         destino = data.get("to") or data.get("dest") or data.get("dst")
         via = data.get("via")
         if not destino or not via:
-            sc.add(f"{where}[{idx}]", "una ruta necesita 'to' y 'via'")
+            sc.add(f"{where}[{idx}]", "a route needs 'to' and 'via'")
             continue
         try:
             red = ipaddress.ip_network(str(destino), strict=False)
         except ValueError as exc:
-            sc.add(f"{where}[{idx}].to", f"destino no válido ({exc})")
+            sc.add(f"{where}[{idx}].to", f"invalid destination ({exc})")
             continue
         if _parse_ip(via, f"{where}[{idx}].via", sc) is None:
             continue
@@ -246,7 +246,7 @@ class Policy:
             case "reject-reset":
                 return f"    {expr} reject with tcp reset"
             case other:
-                raise ValueError(f"acción desconocida: {other}")
+                raise ValueError(f"unknown action: {other}")
 
 
 @dataclass
@@ -314,13 +314,13 @@ def load(path: str | Path) -> Topology:
     """Carga y valida una topología desde un fichero YAML."""
     path = Path(path)
     if not path.exists():
-        raise LabErrors([__issue(str(path), "el fichero no existe")])
+        raise LabErrors([__issue(str(path), "file does not exist")])
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
-        raise LabErrors([__issue(str(path), f"YAML no válido: {exc}")]) from exc
+        raise LabErrors([__issue(str(path), f"invalid YAML: {exc}")]) from exc
     if not isinstance(raw, dict):
-        raise LabErrors([__issue(str(path), "el documento debe ser un mapa en la raíz")])
+        raise LabErrors([__issue(str(path), "the document must be a map at the root")])
     return from_dict(raw, path=path)
 
 
@@ -335,16 +335,16 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
 
     version = raw.get("version", 1)
     if version != 1:
-        sc.add("version", f"solo se admite la versión 1 (encontrada {version!r})")
+        sc.add("version", f"only version 1 is supported (found {version!r})")
 
     name = raw.get("name")
     if not isinstance(name, str) or not LAB_NAME_RE.match(name):
         sc.add(
             "name",
-            "obligatorio; minúsculas, empieza por letra o dígito, hasta 63 caracteres [a-z0-9._-]",
+            "required; lowercase, starts with a letter or digit, up to 63 characters [a-z0-9._-]",
         )
 
-    _rechazar_desconocidas(raw, "topologia", "topología", sc)
+    _rechazar_desconocidas(raw, "topologia", "topology", sc)
 
     defaults = _as_dict(raw.get("defaults"), "defaults", sc)
     default_image = str(defaults.get("image", "debian13"))
@@ -362,48 +362,48 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
     # ---- redes
     redes_raw = _as_dict(raw.get("networks"), "networks", sc)
     if not redes_raw:
-        sc.add("networks", "una topología necesita al menos una red")
+        sc.add("networks", "a topology needs at least one network")
 
     used_ids: dict[int, str] = {}
     for idx, (net_name, net_raw) in enumerate(redes_raw.items()):
         where = f"networks.{net_name}"
         if not NAME_RE.match(str(net_name)):
-            sc.add(where, "nombre no válido (minúsculas, [a-z0-9-])")
+            sc.add(where, "invalid name (lowercase, [a-z0-9-])")
         data = _as_dict(net_raw, where, sc)
         _rechazar_desconocidas(data, "red", where, sc)
         net_id = data.get("id", idx)
         if not isinstance(net_id, int) or not 0 <= net_id <= 255:
-            sc.add(f"{where}.id", "debe ser un entero entre 0 y 255")
+            sc.add(f"{where}.id", "must be an integer between 0 and 255")
             net_id = idx
         if net_id in used_ids:
-            sc.add(f"{where}.id", f"repetido con {used_ids[net_id]}")
+            sc.add(f"{where}.id", f"duplicated with {used_ids[net_id]}")
         used_ids[net_id] = str(net_name)
 
         tipo = str(data.get("type", "isolated"))
         if tipo not in NETWORK_TYPES:
-            sc.add(f"{where}.type", f"debe ser uno de {', '.join(NETWORK_TYPES)}")
+            sc.add(f"{where}.type", f"must be one of {', '.join(NETWORK_TYPES)}")
         modo = str(data.get("mode", "switch"))
         if modo not in NETWORK_MODES:
-            sc.add(f"{where}.mode", f"debe ser uno de {', '.join(NETWORK_MODES)}")
+            sc.add(f"{where}.mode", f"must be one of {', '.join(NETWORK_MODES)}")
         addressing = str(data.get("addressing", "auto"))
         if addressing not in ADDRESSING:
-            sc.add(f"{where}.addressing", f"debe ser uno de {', '.join(ADDRESSING)}")
+            sc.add(f"{where}.addressing", f"must be one of {', '.join(ADDRESSING)}")
 
         cidr = data.get("cidr")
         if cidr is None:
             if tipo == "nat":
                 cidr = f"10.99.{net_id}.0/24"
             else:
-                sc.add(f"{where}.cidr", "obligatorio para redes aisladas")
+                sc.add(f"{where}.cidr", "required for isolated networks")
         subnet = _parse_cidr(cidr, f"{where}.cidr", sc) if cidr else None
         if subnet is not None and subnet.num_addresses < 8:
-            sc.add(f"{where}.cidr", "la red es demasiado pequeña")
+            sc.add(f"{where}.cidr", "the network is too small")
 
         gateway = data.get("gateway")
         if gateway is not None:
             gw_ip = _parse_ip(gateway, f"{where}.gateway", sc)
             if gw_ip and subnet and gw_ip not in subnet:
-                sc.add(f"{where}.gateway", f"{gateway} no pertenece a {cidr}")
+                sc.add(f"{where}.gateway", f"{gateway} is not inside {cidr}")
         elif tipo == "nat" and subnet is not None:
             gateway = str(subnet.network_address + 1)
         else:
@@ -413,10 +413,10 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
         if tipo == "bridged" and not parent:
             sc.add(
                 f"{where}.parent",
-                "una red 'bridged' necesita parent: el interfaz físico del anfitrión al que colgarse",
+                "a 'bridged' network needs parent: the host physical interface to attach to",
             )
         if tipo != "bridged" and parent:
-            sc.add(f"{where}.parent", "solo tiene sentido en redes de tipo 'bridged'")
+            sc.add(f"{where}.parent", "only makes sense on networks of type 'bridged'")
 
         topo.networks[str(net_name)] = Network(
             name=str(net_name),
@@ -433,7 +433,7 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
     # ---- nodos
     nodos_raw = _as_list(raw.get("nodes"), "nodes", sc)
     if not nodos_raw:
-        sc.add("nodes", "una topología necesita al menos un nodo")
+        sc.add("nodes", "a topology needs at least one node")
 
     seen: set[str] = set()
     for idx, nodo_raw in enumerate(nodos_raw):
@@ -443,9 +443,9 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
         where = f"nodes[{idx}:{node_name or '?'}]"
         _rechazar_desconocidas(data, "nodo", where, sc)
         if not NAME_RE.match(node_name):
-            sc.add(f"{where}.name", "obligatorio; minúsculas, [a-z0-9-]")
+            sc.add(f"{where}.name", "required; lowercase, [a-z0-9-]")
         elif node_name in seen:
-            sc.add(f"{where}.name", "nombre repetido")
+            sc.add(f"{where}.name", "duplicated name")
         seen.add(node_name)
 
         res_raw = _as_dict(data.get("resources"), f"{where}.resources", sc)
@@ -464,9 +464,9 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
             src = a_data.get("src")
             dst = a_data.get("dst")
             if not src:
-                sc.add(f"{a_where}.src", "obligatorio")
+                sc.add(f"{a_where}.src", "required")
             if not dst:
-                sc.add(f"{a_where}.dst", "obligatorio")
+                sc.add(f"{a_where}.dst", "required")
             if src and dst:
                 assets.append(Asset(src=str(src), dst=str(dst), mode=str(a_data.get("mode", "0644"))))
 
@@ -491,7 +491,7 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
         # ---- enlaces
         links_raw = _as_list(data.get("links"), f"{where}.links", sc)
         if not links_raw:
-            sc.add(f"{where}.links", "un nodo necesita al menos un enlace")
+            sc.add(f"{where}.links", "a node needs at least one link")
         for l_idx, link_raw in enumerate(links_raw):
             l_where = f"{where}.links[{l_idx}]"
             if isinstance(link_raw, str):
@@ -500,15 +500,15 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
             _rechazar_desconocidas(l_data, "enlace", l_where, sc)
             net_name = l_data.get("net")
             if not net_name:
-                sc.add(f"{l_where}.net", "obligatorio")
+                sc.add(f"{l_where}.net", "required")
                 continue
             if net_name not in topo.networks:
-                sc.add(f"{l_where}.net", f"la red {net_name!r} no está definida")
+                sc.add(f"{l_where}.net", f"network {net_name!r} is not defined")
                 continue
             vid = l_data.get("vlan")
             if vid is not None:
                 if not isinstance(vid, int) or not 1 <= vid <= 4094:
-                    sc.add(f"{l_where}.vlan", "debe estar entre 1 y 4094")
+                    sc.add(f"{l_where}.vlan", "must be between 1 and 4094")
                     vid = None
 
             node.links.append(
@@ -533,7 +533,7 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
         if members != ["*"]:
             for m in members:
                 if m not in seen:
-                    sc.add(f"profiles.{p_name}", f"el nodo {m!r} no existe")
+                    sc.add(f"profiles.{p_name}", f"node {m!r} does not exist")
         topo.profiles[str(p_name)] = members
 
     # ---- políticas
@@ -544,12 +544,12 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
         origen = str(data.get("from", ""))
         destino = str(data.get("to", ""))
         if origen not in topo.networks:
-            sc.add(f"{p_where}.from", f"la red {origen!r} no existe")
+            sc.add(f"{p_where}.from", f"network {origen!r} does not exist")
         if destino not in topo.networks:
-            sc.add(f"{p_where}.to", f"la red {destino!r} no existe")
+            sc.add(f"{p_where}.to", f"network {destino!r} does not exist")
         accion = str(data.get("action", "drop"))
         if accion not in ("accept", "drop", "reject-reset"):
-            sc.add(f"{p_where}.action", "debe ser accept, drop o reject-reset")
+            sc.add(f"{p_where}.action", "must be accept, drop or reject-reset")
         topo.policies.append(
             Policy(
                 from_net=origen,
@@ -567,7 +567,7 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
     if tele:
         soc = tele.get("soc")
         if soc is not None and soc not in seen:
-            sc.add("telemetry.soc", f"el nodo {soc!r} no existe")
+            sc.add("telemetry.soc", f"node {soc!r} does not exist")
         topo.telemetry = Telemetry(
             soc=str(soc) if soc else None,
             sources=[str(s) for s in _as_list(tele.get("sources"), "telemetry.sources", sc)]
@@ -597,13 +597,13 @@ def _finalize_link(
     if link.mac:
         mac = link.mac.strip().lower()
         if not re.fullmatch(r"([0-9a-f]{2}:){5}[0-9a-f]{2}", mac):
-            sc.add(f"{where}.mac", "formato de MAC no válido (aa:bb:cc:dd:ee:ff)")
+            sc.add(f"{where}.mac", "invalid MAC format (aa:bb:cc:dd:ee:ff)")
             return
     else:
         octeto = int(str(ip).split(".")[-1])
         mac = f"{MAC_PREFIX}:{net.id:02x}:{octeto:02x}"
     if mac in macs:
-        sc.add(f"{where}.mac", f"MAC repetida con {macs[mac]}")
+        sc.add(f"{where}.mac", f"MAC duplicated with {macs[mac]}")
         return
     macs[mac] = node.name
     link.mac = mac
@@ -636,13 +636,13 @@ def derive(topo: Topology) -> None:
             if ip is None:
                 continue
             if ip not in subnet:
-                sc.add(f"{where}.ip", f"{ip} no pertenece a {net.cidr}")
+                sc.add(f"{where}.ip", f"{ip} is not inside {net.cidr}")
                 continue
             if ip in (subnet.network_address, subnet.broadcast_address):
-                sc.add(f"{where}.ip", f"{ip} es una dirección reservada de la red")
+                sc.add(f"{where}.ip", f"{ip} is a reserved address of the network")
                 continue
             if ip in usadas:
-                sc.add(f"{where}.ip", f"{ip} ya la usa {usadas[ip]}")
+                sc.add(f"{where}.ip", f"{ip} is already in use by {usadas[ip]}")
                 continue
             usadas[ip] = node.name
             _finalize_link(net, node, link, ip, macs, sc, where)
@@ -663,7 +663,7 @@ def derive(topo: Topology) -> None:
                 ip = candidata
                 break
             if ip is None:
-                sc.add(f"{where}.ip", "no quedan direcciones libres en la red")
+                sc.add(f"{where}.ip", "no free addresses left in the network")
                 continue
             usadas[ip] = node.name
             _finalize_link(net, node, link, ip, macs, sc, where)
@@ -675,10 +675,10 @@ def derive(topo: Topology) -> None:
             if not servidores:
                 sc.add(
                     f"networks.{net.name}.addressing",
-                    "es 'dhcp' pero ningún nodo de esa red tiene dhcp_server: true",
+                    "is 'dhcp' but no node on that network has dhcp_server: true",
                 )
 
     if topo.telemetry.enabled and topo.node(topo.telemetry.soc or "") is None:
-        sc.add("telemetry.soc", f"el nodo SOC {topo.telemetry.soc!r} no existe")
+        sc.add("telemetry.soc", f"SOC node {topo.telemetry.soc!r} does not exist")
 
     sc.raise_if_any()

@@ -93,7 +93,7 @@ def test_restore_avisa_si_falta_el_snapshot():
     runner = RecordingRunner({"incus query": (0, _snaps("otro"), "")})
     fallos = restore_snapshot(Incus(runner), ["fw"], "initial")
     assert len(fallos) == 1
-    assert "no existe el snapshot" in fallos[0]
+    assert "snapshot 'initial' does not exist" in fallos[0]
     # si no existe, no se intenta restaurar
     assert not runner.contiene("snapshot restore")
     assert runner.contiene("incus query")

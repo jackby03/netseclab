@@ -60,9 +60,9 @@ def test_gramatica_capture():
 
 
 def test_un_parametro_no_admitido_falla():
-    with pytest.raises(LabErrors, match="no admitidos"):
+    with pytest.raises(LabErrors, match="not allowed"):
         _check("ids-alerts since=last, count=0")
-    with pytest.raises(LabErrors, match="no admitidos"):
+    with pytest.raises(LabErrors, match="not allowed"):
         _check('capture dmz, since=last, contains: "x"')
 
 
@@ -72,7 +72,7 @@ def test_gramatica_answer():
 
 
 def test_una_comprobacion_inventada_falla():
-    with pytest.raises(LabErrors, match="no entiendo"):
+    with pytest.raises(LabErrors, match="unknown check"):
         _check("haz magia con el cortafuegos")
 
 
@@ -129,7 +129,7 @@ def test_ids_sin_alertas(topo):
     check = _check("ids-alerts src: 10.20.0.30, count: 0")
     runner = RecordingRunner({"grep": (0, "0\n", "")})
     ok, detalle = run_check(check, Incus(runner), topo)
-    assert ok and "0 alertas" in detalle
+    assert ok and "0 alerts" in detalle
     # el nodo del IDS se deduce de la topología
     assert runner.contiene("exec fw")
 
@@ -148,7 +148,7 @@ def test_captura_sin_fichero(topo, workdir):
     )
     ok, detalle = run_check(check, Incus(RecordingRunner()), topo)
     assert not ok
-    assert "no existe la captura" in detalle
+    assert "does not exist" in detalle
 
 
 def test_captura_encuentra_el_texto(topo, workdir):
@@ -164,7 +164,7 @@ def test_captura_encuentra_el_texto(topo, workdir):
 def test_answer_sin_respuesta(topo):
     check = _check('answer "¿Por qué?" contains "reject"')
     ok, detalle = run_check(check, Incus(RecordingRunner()), topo, "")
-    assert not ok and "no hay respuesta" in detalle
+    assert not ok and "no saved answer" in detalle
 
 
 def test_answer_con_respuesta(topo):
@@ -188,7 +188,7 @@ def test_un_ejercicio_sin_comprobaciones_falla(workdir):
     ruta.write_text("id: x\ntitle: X\nlab: ../x.yaml\n", encoding="utf-8")
     with pytest.raises(LabErrors) as exc:
         load_exercise(ruta)
-    assert "comprobación" in str(exc.value)
+    assert "at least one check" in str(exc.value)
 
 
 def test_todos_los_ejercicios_del_repositorio_cargan():

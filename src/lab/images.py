@@ -45,30 +45,30 @@ class ImageRecipe:
 def load_recipe(path: str | Path) -> ImageRecipe:
     path = Path(path)
     if not path.exists():
-        raise LabErrors([Issue(str(path), "la receta no existe")])
+        raise LabErrors([Issue(str(path), "the recipe does not exist")])
     try:
         raw: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        raise LabErrors([Issue(str(path), f"YAML no válido: {exc}")]) from exc
+        raise LabErrors([Issue(str(path), f"invalid YAML: {exc}")]) from exc
     if not isinstance(raw, dict):
-        raise LabErrors([Issue(str(path), "la receta debe ser un mapa en la raíz")])
+        raise LabErrors([Issue(str(path), "the recipe must be a map at the root")])
 
     sc = Scope()
     for clave in raw:
         if clave not in CLAVES:
-            sc.add(f"{clave}", f"clave desconocida en la receta; se admiten: {', '.join(sorted(CLAVES))}")
+            sc.add(f"{clave}", f"unknown key in recipe; allowed: {', '.join(sorted(CLAVES))}")
 
     nombre = str(raw.get("name", ""))
     if not nombre:
-        sc.add("name", "obligatorio")
+        sc.add("name", "required")
     base = str(raw.get("base", "debian13"))
     if not base:
-        sc.add("base", "obligatorio")
+        sc.add("base", "required")
 
     assets: list[tuple[str, str]] = []
     for idx, item in enumerate(raw.get("assets") or []):
         if not isinstance(item, dict) or "src" not in item or "dst" not in item:
-            sc.add(f"assets[{idx}]", "cada asset necesita src y dst")
+            sc.add(f"assets[{idx}]", "each asset needs src and dst")
             continue
         assets.append((str(item["src"]), str(item["dst"])))
 
@@ -93,15 +93,15 @@ def build_plan(recipe: ImageRecipe, root: Path | None = None) -> list[Step]:
     inst = recipe.instancia
     pasos: list[Step] = [
         Step("limpiar", argv=["incus", "delete", inst, "--force"],
-             note=f"por si quedó una construcción a medias de {recipe.name}"),
+             note=f"in case a half-finished build of {recipe.name} is left"),
         Step("crear", argv=["incus", "launch", base, inst, "--profile", PERFIL_NODOS],
-             note=f"{recipe.name} desde {base}"),
+             note=f"{recipe.name} from {base}"),
     ]
 
     if recipe.size:
         pasos.append(
             Step("crear", argv=["incus", "config", "device", "override", inst, "root", f"size={recipe.size}"],
-                 note=f"disco de {recipe.size}")
+                 note=f"disk of {recipe.size}")
         )
 
     if recipe.packages:
@@ -110,7 +110,7 @@ def build_plan(recipe: ImageRecipe, root: Path | None = None) -> list[Step]:
             Step("paquetes", node=inst,
                  argv=["sh", "-c", "apt-get update -qq && "
                        f"DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {lista}"],
-                 note=f"{len(recipe.packages)} paquetes")
+                 note=f"{len(recipe.packages)} packages")
         )
 
     carpeta = recipe.path.parent
@@ -123,18 +123,18 @@ def build_plan(recipe: ImageRecipe, root: Path | None = None) -> list[Step]:
             pasos.append(Step("ficheros", kind="push", node=inst, path=dst,
                               content=origen.read_text(encoding="utf-8")))
         else:
-            raise FileNotFoundError(f"la receta {recipe.name} apunta a {origen}, que no existe")
+            raise FileNotFoundError(f"recipe {recipe.name} points to {origen}, which does not exist")
 
     if recipe.startup.strip():
         pasos.append(
-            Step("arranque", node=inst, argv=["sh", "-c", recipe.startup], note="startup de la receta")
+            Step("arranque", node=inst, argv=["sh", "-c", recipe.startup], note="recipe startup")
         )
 
     pasos += [
-        Step("publicar", argv=["incus", "stop", inst], note="una imagen se publica con la instancia parada"),
+        Step("publicar", argv=["incus", "stop", inst], note="an image is published with the instance stopped"),
         Step("publicar", argv=["incus", "publish", inst, "--alias", recipe.referencia],
              note=f"alias {recipe.referencia}"),
-        Step("limpiar", argv=["incus", "delete", inst, "--force"], note="borrar la instancia temporal"),
+        Step("limpiar", argv=["incus", "delete", inst, "--force"], note="delete the temporary instance"),
     ]
     return pasos
 

@@ -36,35 +36,35 @@ class Exercise:
 def load(path: str | Path) -> Exercise:
     path = Path(path)
     if not path.exists():
-        raise LabErrors([Issue(str(path), "el ejercicio no existe")])
+        raise LabErrors([Issue(str(path), "the exercise does not exist")])
     try:
         raw: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        raise LabErrors([Issue(str(path), f"YAML no válido: {exc}")]) from exc
+        raise LabErrors([Issue(str(path), f"invalid YAML: {exc}")]) from exc
     if not isinstance(raw, dict):
-        raise LabErrors([Issue(str(path), "el documento debe ser un mapa en la raíz")])
+        raise LabErrors([Issue(str(path), "the document must be a map at the root")])
 
     sc = Scope()
     ident = str(raw.get("id", ""))
     if not ident:
-        sc.add("id", "obligatorio")
+        sc.add("id", "required")
     lab_rel = raw.get("lab")
     if not lab_rel:
-        sc.add("lab", "obligatorio: ruta a la topología del ejercicio")
+        sc.add("lab", "required: path to the exercise topology")
         lab_path = path
     else:
         lab_path = (path.parent / str(lab_rel)).resolve()
         if not lab_path.exists():
-            sc.add("lab", f"no existe {lab_path}")
+            sc.add("lab", f"{lab_path} does not exist")
 
     checks_raw = raw.get("checks") or []
     if not isinstance(checks_raw, list) or not checks_raw:
-        sc.add("checks", "un ejercicio necesita al menos una comprobación")
+        sc.add("checks", "an exercise needs at least one check")
         checks_raw = []
     checks: list[Check] = []
     for idx, item in enumerate(checks_raw):
         if not isinstance(item, dict):
-            sc.add(f"checks[{idx}]", "se esperaba un mapa con 'assert'")
+            sc.add(f"checks[{idx}]", "expected a map with 'assert'")
             continue
         try:
             checks.append(parse_check(item, f"checks[{idx}]"))
