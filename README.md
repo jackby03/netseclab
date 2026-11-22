@@ -101,7 +101,21 @@ trucos; con `mode: mirror` da switch realista más puerto espejo.
 |---|---|---|
 | `01-reconocimiento` | `example.net` | Diferencia entre puerto abierto, cerrado y filtrado |
 | `02-conectividad` | `example.net` | Deducir la política del cortafuegos desde los flujos |
+| `03-captura` | `example.net` | Sniffing: por qué un hub se ve y un switch no |
+| `04-pivoteo` | `pivot` | Movimiento lateral a una red sin ruta directa |
+| `05-endurecimiento` | `example.net` | Cerrar la superficie de un servidor expuesto |
 | `06-fuzz-evasion` | `fuzz-evasion` | Descubrimiento de directorios evadiendo el IDS |
+
+### Imágenes propias
+
+```bash
+lab image build images/recipes/web.yaml --dry-run   # ver el plan
+lab image build images/recipes/web.yaml             # construir y publicar
+lab image ls
+```
+
+Una receta arranca una instancia temporal, instala paquetes, copia ficheros, ejecuta su `startup` y
+publica el resultado como `lab/<nombre>:<versión>`. Después un nodo puede pedir `image: web`.
 
 ### Estructura
 
@@ -115,11 +129,16 @@ src/lab/engine/   ejecución sobre Incus, snapshots, captura
 src/lab/checks.py gramática y ejecución de las aserciones
 src/lab/web.py    consolas por navegador (PTY + HTTP, sin dependencias)
 images/box/       construcción del artefacto de VMware
-docs/             análisis, diseño, formato, catálogo y guía de uso
-tests/            102 pruebas (modelo, generadores, motor, ejercicios, web, caja, CLI)
+images/recipes/   recetas de imágenes propias
+docs/             análisis, diseño, formato, catálogo, guía de uso y pendientes
+tests/            131 pruebas (modelo, generadores, motor, ejercicios, web, caja, CLI)
 ```
 
 ## Licencia
 
-GPL-3.0-or-later para el código y CC-BY-SA-4.0 para la documentación y los ejercicios.
-El texto completo de las licencias se añadirá antes de la primera publicación.
+- **Código**: GPL-3.0-or-later. El texto completo está en [LICENSE](LICENSE).
+- **Documentación y ejercicios**: CC-BY-SA-4.0. El texto completo está en
+  [LICENSES/CC-BY-SA-4.0.txt](LICENSES/CC-BY-SA-4.0.txt).
+
+Se puede usar, copiar, modificar y redistribuir; si se distribuye una versión modificada, tiene que
+seguir siendo libre.

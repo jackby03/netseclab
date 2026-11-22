@@ -23,7 +23,7 @@ Primera versión completa: el laboratorio se puede describir, generar, levantar 
 - **Caja**: construcción reproducible de la VM de VMware con Debian fijado y checksum verificado.
 - **Documentación**: análisis del proyecto original, diseño, formato, catálogo, guía de uso.
 - **6 ejercicios** y **4 laboratorios** de ejemplo.
-- **125 pruebas**.
+- **131 pruebas**.
 
 ### Corregido durante el desarrollo
 
