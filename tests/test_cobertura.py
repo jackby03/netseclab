@@ -165,3 +165,65 @@ nodes:
     plan = build(load(ruta))
     scripts = [s.content for s in plan.steps if s.kind == "push" and s.path.endswith("lab-net")]
     assert any("10.8.0.0/16 via 10.0.2.254" in s for s in scripts)
+
+
+# --------------------------------------------------------------------------- VLANs
+
+
+def test_la_vlan_del_enlace_llega_al_dispositivo(workdir):
+    ruta = workdir / "vlan.yaml"
+    ruta.write_text(
+        """
+version: 1
+name: vlan
+networks: { lan: { cidr: 10.0.3.0/24 } }
+nodes:
+  - name: a
+    links:
+      - { net: lan, vlan: 42 }
+""",
+        encoding="utf-8",
+    )
+    plan = build(load(ruta))
+    dispositivos = [s.command() for s in plan.steps if s.kind == "cmd" and "device add" in s.command()]
+    assert any("vlan=42" in d for d in dispositivos)
+
+
+def test_una_vlan_fuera_de_rango_es_un_error(workdir):
+    ruta = workdir / "vlan-mala.yaml"
+    ruta.write_text(
+        """
+version: 1
+name: vlan-mala
+networks: { lan: { cidr: 10.0.4.0/24 } }
+nodes:
+  - name: a
+    links:
+      - { net: lan, vlan: 5000 }
+""",
+        encoding="utf-8",
+    )
+    from lab.errors import LabErrors
+
+    with pytest.raises(LabErrors, match="entre 1 y 4094"):
+        load(ruta)
+
+
+def test_la_vlan_de_red_no_se_acepta(workdir):
+    """La VLAN es por enlace; a nivel de red sería una opción que no hace nada."""
+    ruta = workdir / "vlan-red.yaml"
+    ruta.write_text(
+        """
+version: 1
+name: vlan-red
+networks:
+  lan: { cidr: 10.0.5.0/24, vlan: 10 }
+nodes:
+  - { name: a, links: [lan] }
+""",
+        encoding="utf-8",
+    )
+    from lab.errors import LabErrors
+
+    with pytest.raises(LabErrors, match="clave desconocida"):
+        load(ruta)

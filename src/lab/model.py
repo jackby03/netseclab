@@ -505,12 +505,18 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
             if net_name not in topo.networks:
                 sc.add(f"{l_where}.net", f"la red {net_name!r} no está definida")
                 continue
+            vid = l_data.get("vlan")
+            if vid is not None:
+                if not isinstance(vid, int) or not 1 <= vid <= 4094:
+                    sc.add(f"{l_where}.vlan", "debe estar entre 1 y 4094")
+                    vid = None
+
             node.links.append(
                 Link(
                     net=str(net_name),
                     ip=str(l_data["ip"]) if "ip" in l_data else None,
                     mac=str(l_data["mac"]) if "mac" in l_data else None,
-                    vlan=int(l_data["vlan"]) if "vlan" in l_data else None,
+                    vlan=vid,
                     default=bool(l_data.get("default", False)),
                     gateway=str(l_data["gateway"]) if "gateway" in l_data else None,
                     routes=_parse_routes(l_data.get("routes"), f"{l_where}.routes", sc),
