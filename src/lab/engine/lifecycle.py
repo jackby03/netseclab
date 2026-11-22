@@ -6,7 +6,12 @@ tras un fallo tiene que continuar donde se quedó.
 
 from __future__ import annotations
 
+import os
+import shutil
+import tempfile
+import uuid
 from dataclasses import dataclass, field
+from pathlib import Path, PurePosixPath
 
 from ..plan import Plan, Step
 from .incus import Incus
@@ -49,29 +54,85 @@ def _ignorable(resultado: Result) -> bool:
     return any(marca in texto for marca in IGNORABLES)
 
 
+def _push(step: Step, runner: Runner, carpeta: Path, contador: int) -> Result:
+    """Copia un fichero generado dentro de un nodo.
+
+    Se escribe primero en un temporal y se usa `incus file push`. El directorio
+    destino se crea antes: `/etc/lab` o `/var/log/lab` pueden no existir.
+    """
+    padre = str(PurePosixPath(step.path).parent)
+    if padre not in ("", "/"):
+        runner.run(["incus", "exec", step.node or "", "--", "mkdir", "-p", padre])
+    temporal = carpeta / f"push-{contador}"
+    temporal.write_text(step.content, encoding="utf-8")
+    return runner.run(
+        [
+            "incus",
+            "file",
+            "push",
+            str(temporal),
+            f"{step.node}{step.path}",
+            f"--mode={step.mode}",
+        ]
+    )
+
+
+def _carpeta_temporal() -> Path:
+    """Directorio escribible para los ficheros que se van a copiar a los nodos.
+
+    Se prueban `LAB_TMPDIR`, el temporal del sistema y el directorio actual: en
+    entornos con el temporal restringido (contenedores, sandboxes) los dos
+    primeros pueden no ser escribibles. No se usa `mkdtemp` porque en algunos
+    sandboxes crea un directorio donde luego no se puede escribir.
+    """
+    candidatos = [os.environ.get("LAB_TMPDIR"), tempfile.gettempdir(), os.getcwd()]
+    nombre = f"netseclab-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+    for base in candidatos:
+        if not base:
+            continue
+        carpeta = Path(base) / nombre
+        try:
+            carpeta.mkdir(parents=True, exist_ok=False)
+            prueba = carpeta / "prueba"
+            prueba.write_text("ok", encoding="utf-8")
+            prueba.unlink()
+            return carpeta
+        except OSError:
+            shutil.rmtree(carpeta, ignore_errors=True)
+            continue
+    raise RuntimeError("no hay un directorio temporal escribible para `lab`")
+
+
 def execute(
     plan: Plan,
     runner: Runner,
     seguir: bool = False,
     on_step=None,
 ) -> Outcome:
-    """Ejecuta un plan. Los `push` (ficheros) los resuelve el CLI antes de llamar aquí."""
+    """Ejecuta un plan: comandos y copia de ficheros."""
     resultado = Outcome()
-    for step in plan.steps:
-        if step.kind == "push":
-            continue
-        if on_step:
-            on_step(step)
-        res = runner.run(step.exec_argv())
-        if res.ok:
-            resultado.ejecutados += 1
-            continue
-        if _ignorable(res):
-            resultado.omitidos += 1
-            continue
-        resultado.fallos.append((step.command(), (res.err or res.out).strip()))
-        if not seguir:
-            break
+    contador = 0
+    carpeta = _carpeta_temporal()
+    try:
+        for step in plan.steps:
+            if on_step:
+                on_step(step)
+            if step.kind == "push":
+                contador += 1
+                res = _push(step, runner, carpeta, contador)
+            else:
+                res = runner.run(step.exec_argv())
+            if res.ok:
+                resultado.ejecutados += 1
+                continue
+            if _ignorable(res):
+                resultado.omitidos += 1
+                continue
+            resultado.fallos.append((step.command(), (res.err or res.out).strip()))
+            if not seguir:
+                break
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
     return resultado
 
 
