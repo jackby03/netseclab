@@ -23,10 +23,20 @@ class Instance:
 
 
 def _direcciones(inst: dict) -> list[str]:
+    """Direcciones IPv4 globales de una instancia.
+
+    Según la versión, `state.network` llega como lista de interfaces o como mapa
+    nombre→interfaz; se aceptan las dos formas.
+    """
+    estado = (inst.get("state") or {}).get("network") or {}
+    redes = estado.values() if isinstance(estado, dict) else estado
     salida: list[str] = []
-    estado = (inst.get("state") or {}).get("network") or []
-    for red in estado:
+    for red in redes:
+        if not isinstance(red, dict):
+            continue
         for direccion in red.get("addresses") or []:
+            if not isinstance(direccion, dict):
+                continue
             if direccion.get("family") == "inet" and direccion.get("scope") == "global":
                 salida.append(str(direccion.get("address")))
     return salida

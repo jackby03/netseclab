@@ -136,8 +136,9 @@ construir_imagen() {
 }
 
 if ! imagen_existe "lab-node-v1"; then
+  # dnsmasq lo necesita cualquier nodo que sirva DHCP o DNS en un escenario
   construir_imagen node images:debian/13 \
-    "openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client"
+    "openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client dnsmasq"
 fi
 
 if ! imagen_existe "lab-web-v1"; then

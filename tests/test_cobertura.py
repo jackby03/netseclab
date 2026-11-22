@@ -227,3 +227,55 @@ nodes:
 
     with pytest.raises(LabErrors, match="clave desconocida"):
         load(ruta)
+
+
+def test_status_entiende_el_json_con_mapa_de_interfaces(monkeypatch, capsys):
+    """Incus devuelve state.network como mapa nombre->interfaz, no como lista."""
+    datos = json.dumps(
+        [
+            {
+                "name": "fw",
+                "status": "RUNNING",
+                "type": "container",
+                "state": {
+                    "network": {
+                        "eth0": {
+                            "addresses": [
+                                {"family": "inet", "address": "10.5.0.254", "scope": "global"}
+                            ]
+                        },
+                        "eth1": {
+                            "addresses": [
+                                {"family": "inet", "address": "10.5.1.254", "scope": "global"}
+                            ]
+                        },
+                    }
+                },
+            }
+        ]
+    )
+    runner = RecordingRunner({"list --format json": (0, datos, "")})
+    monkeypatch.setattr(cli, "_runner", lambda: runner)
+    monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
+    assert cli.main(["status"]) == 0
+    salida = capsys.readouterr().out
+    assert "10.5.0.254" in salida and "10.5.1.254" in salida
+
+
+def test_los_ajustes_del_bridge_necesitan_root(workdir):
+    """Cambiar puertos del bridge y hablar con OVS requiere privilegios."""
+    ruta = workdir / "hub.yaml"
+    ruta.write_text(
+        """
+version: 1
+name: hub
+networks:
+  ext: { cidr: 10.7.0.0/24, mode: hub }
+nodes:
+  - { name: a, links: [ext] }
+""",
+        encoding="utf-8",
+    )
+    plan = build(load(ruta))
+    post = [s.command() for s in plan.steps if s.phase == "post"]
+    assert post and all(c.startswith("sudo ") for c in post)

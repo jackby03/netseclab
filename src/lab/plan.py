@@ -516,18 +516,19 @@ def build(
             )
 
     # ── ajustes de conmutación
+    # Manipular puertos del bridge y el demonio de OVS necesita root; el usuario
+    # del laboratorio no tiene por qué serlo.
     for net in redes:
         if net.mode == "hub":
+            guion = (
+                f"for p in /sys/class/net/{net.bridge}/brif/*; do "
+                '[ -e "$p" ] && bridge link set dev "$(basename "$p")" learning off; '
+                "done"
+            )
             steps.append(
                 Step(
                     "post",
-                    argv=[
-                        "sh",
-                        "-c",
-                        f'for p in /sys/class/net/{net.bridge}/brif/*; do '
-                        '[ -e "$p" ] && bridge link set dev "$(basename "$p")" learning off; '
-                        "done; true",
-                    ],
+                    argv=["sudo", "sh", "-c", guion],
                     note=f"{net.name}: modo hub (sin aprendizaje de MAC, todo se inunda)",
                 )
             )
@@ -542,8 +543,11 @@ def build(
                 f"-- set Bridge {net.bridge} mirrors=@m"
             )
             steps.append(
-                Step("post", argv=["sh", "-c", guion],
-                     note=f"{net.name}: puerto espejo {puerto} (OVS)")
+                Step(
+                    "post",
+                    argv=["sudo", "sh", "-c", guion],
+                    note=f"{net.name}: puerto espejo {puerto} (OVS)",
+                )
             )
 
     return Plan(topology=topo, profile=profile, nodes=nodes, steps=steps)
