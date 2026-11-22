@@ -97,9 +97,10 @@ def test_el_vmx_no_pide_anidamiento():
     assert "ethernet1.present" not in claves
     # no se exige virtualización anidada
     assert "vhv.enable" not in claves
-    # controladores conservadores: el kernel cloud de Debian no siempre trae pvscsi ni vmxnet3
+    # controladores conservadores: SATA para el disco y vmxnet3 para la red,
+    # que es lo que trae el kernel cloud de Debian (e1000 no está)
     assert claves["sata0:0.fileName"] == "netseclab.vmdk"
-    assert claves["ethernet0.virtualDev"] == "e1000"
+    assert claves["ethernet0.virtualDev"] == "vmxnet3"
     assert "scsi0.virtualDev" not in claves
 
 

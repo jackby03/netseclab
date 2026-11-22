@@ -133,7 +133,9 @@ systemctl enable lab-mgmt-net.service
 rm -f /etc/network/interfaces.d/50-cloud-init /etc/network/interfaces.d/50-cloud-init.cfg
 
 echo "== limpieza para distribuir"
-apt-get clean
+# NO se hace `apt-get clean`: la caché de .deb es lo que permite instalar las
+# herramientas de cada ejercicio sin Internet. Solo se limpian las listas.
+rm -rf /var/lib/apt/lists/*
 cloud-init clean --logs --seed || true
 truncate -s 0 /etc/machine-id
 rm -rf /var/lib/cloud/* /root/.bash_history /home/lab/.bash_history

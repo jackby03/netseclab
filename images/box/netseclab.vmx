@@ -7,9 +7,9 @@ memsize = "2048"
 numvcpus = "2"
 cpuid.coresPerSocket = "2"
 
-# SATA y e1000: los controladores más compatibles con el kernel cloud de Debian.
-# Los rápidos (pvscsi, vmxnet3) no siempre están en esa imagen y, si faltan, la
-# máquina arranca sin disco o sin red. Para una caja de laboratorio, compatible gana.
+# SATA para el disco: compatible con el kernel cloud de Debian.
+# vmxnet3 (paravirtualizado) es el que trae ese kernel para VMware; las emuladas
+# como e1000 no están y la VM se queda sin interfaz de red.
 sata0.present = "TRUE"
 sata0:0.present = "TRUE"
 sata0:0.fileName = "netseclab.vmdk"
@@ -17,7 +17,7 @@ sata0:0.deviceType = "disk"
 
 ethernet0.present = "TRUE"
 ethernet0.connectionType = "nat"
-ethernet0.virtualDev = "e1000"
+ethernet0.virtualDev = "vmxnet3"
 ethernet0.addressType = "generated"
 ethernet0.startConnected = "TRUE"
 
