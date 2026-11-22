@@ -237,15 +237,20 @@ Se activa con `lab up --uplink` y se documenta el riesgo.
 
 ## 8. Presupuesto de recursos
 
-| Escenario | Nodos | RAM | Disco | Arranque |
-|---|---|---|---|---|
-| `small` | 3 | ~700 MB | ~4 GB | ~6 s |
-| `std` | 5 | ~900 MB | ~5 GB | ~10 s |
-| `full` | 9 | ~1,3 GB | ~6 GB | ~15 s |
-| NETinVM equivalente | 5 | ~6 GB | ~8 GB | ~3 min |
+Medido en la caja construida y probada en QEMU con KVM:
 
-Cifras objetivo a validar con medición; el diseño está dimensionado para que un portátil con 8 GB
-pueda tener el laboratorio completo y el navegador abierto.
+| | Medido |
+|---|---|
+| Artefacto (`.tar.gz`) | **1,9 GB** |
+| VMDK descomprimido | 3,3 GB |
+| Disco de la caja | 12 GB virtuales, **3,1 GB usados** |
+| RAM de la caja | 2 GB (4 GB recomendado para el perfil `full`, 7 nodos) |
+| Arranque de un nodo | segundos |
+| Arranque de `lab up` (5 nodos) | ~1 minuto |
+| NETinVM equivalente | 4,9 GB de artefacto y ~6 GB de RAM |
+
+Las cifras del diseño original (RAM ~900 MB, artefacto ~1,5 GB) se han cumplido salvo el artefacto,
+que se queda en 1,9 GB por las cuatro imágenes de nodo que llevan las herramientas dentro.
 
 ---
 

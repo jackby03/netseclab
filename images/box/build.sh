@@ -122,9 +122,11 @@ arrancar() {
   fi
   log "arrancando la VM ($accel)"
   # $accel se expande a propósito sin comillas: son dos argumentos
+  # discard=unmap: al borrar ficheros dentro de la caja, el qcow2 libera bloques.
+  # Sin esto el disco nunca encoge y el artefacto sale enorme.
   qemu-system-x86_64 \
     $accel -machine q35 -smp 2 -m 2048 \
-    -drive file="$DISCO",if=virtio,format=qcow2 \
+    -drive file="$DISCO",if=virtio,format=qcow2,discard=unmap \
     -netdev user,id=n0,hostfwd=tcp:127.0.0.1:"$PUERTO_SSH"-:22 \
     -device virtio-net-pci,netdev=n0 \
     -smbios "type=1,serial=ds=nocloud;s=http://10.0.2.2:$PUERTO_HTTP/" \
@@ -158,6 +160,9 @@ provisionar() {
 
 apagar() {
   log "apagando la caja"
+  # fstrim marca como libres los bloques que ya no se usan; sin esto el qcow2
+  # conserva los datos borrados y el VMDK final pesa varias veces más.
+  ssh_vm lab@127.0.0.1 'sudo fstrim -av' 2>/dev/null || true
   ssh_vm lab@127.0.0.1 'sudo poweroff' 2>/dev/null || true
   for _ in $(seq 1 60); do
     [ -f "$WORK/qemu.pid" ] || break
@@ -175,8 +180,9 @@ exportar_vmdk() {
   qemu-img convert -q -p -O vmdk -o subformat=monolithicSparse \
     "$DISCO" "$WORK/netseclab.vmdk"
   cp "$AQUI/netseclab.vmx" "$WORK/netseclab.vmx"
-  ( cd "$WORK" && tar -czf netseclab-vmware.tar.gz netseclab.vmx netseclab.vmdk )
-  log "listo: $WORK/netseclab-vmware.tar.gz"
+  # --sparse: no guardar los huecos del disco como gigabytes de ceros
+  ( cd "$WORK" && tar --sparse -czf netseclab-vmware.tar.gz netseclab.vmx netseclab.vmdk )
+  log "listo: $WORK/netseclab-vmware.tar.gz ($(du -h "$WORK/netseclab-vmware.tar.gz" | cut -f1))"
   log "en VMware: descomprime y abre netseclab.vmx"
 }
 
