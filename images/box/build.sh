@@ -168,8 +168,11 @@ apagar() {
 }
 
 exportar_vmdk() {
-  log "convirtiendo a VMDK (streamOptimized)"
-  qemu-img convert -q -p -O vmdk -o subformat=streamOptimized \
+  # monolithicSparse es el formato de VMware Workstation/Fusion. streamOptimized
+  # es para importar en OVA/ESXi y VMware lo presenta en solo lectura: la caja
+  # arranca, pero el invitado no puede escribir y el sistema se queda en ro.
+  log "convirtiendo a VMDK (monolithicSparse)"
+  qemu-img convert -q -p -O vmdk -o subformat=monolithicSparse \
     "$DISCO" "$WORK/netseclab.vmdk"
   cp "$AQUI/netseclab.vmx" "$WORK/netseclab.vmx"
   ( cd "$WORK" && tar -czf netseclab-vmware.tar.gz netseclab.vmx netseclab.vmdk )

@@ -117,6 +117,13 @@ def test_el_empaquetado_lleva_lo_que_espera_el_provisionamiento():
     assert "PYTHONPATH=/opt/netseclab/src" in provision
 
 
+def test_el_vmdk_es_para_workstation_y_no_para_importar():
+    """streamOptimized lo monta VMware en solo lectura: la caja no podría escribir."""
+    build = (CAJA / "build.sh").read_text(encoding="utf-8")
+    assert "subformat=monolithicSparse" in build
+    assert "subformat=streamOptimized" not in build
+
+
 def test_el_build_fija_la_version_de_debian():
     build = (CAJA / "build.sh").read_text(encoding="utf-8")
     assert "DEBIAN_BUILD:-2026" in build
