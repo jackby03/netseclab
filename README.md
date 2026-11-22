@@ -131,7 +131,7 @@ src/lab/web.py    consolas por navegador (PTY + HTTP, sin dependencias)
 images/box/       construcción del artefacto de VMware
 images/recipes/   recetas de imágenes propias
 docs/             análisis, diseño, formato, catálogo, guía de uso y pendientes
-tests/            131 pruebas (modelo, generadores, motor, ejercicios, web, caja, CLI)
+tests/            140 pruebas (modelo, generadores, motor, ejercicios, web, caja, CLI)
 ```
 
 ## Licencia

@@ -255,7 +255,7 @@ def cmd_status(args) -> int:
         return 0
     print(f"{'nombre':<12} {'estado':<12} {'tipo':<10} ipv4")
     for inst in instancias:
-        print(f"{inst.name:<12} {inst.status:<12} {inst.type:<10} {', '.join(incus.ips(inst.name)) or '-'}")
+        print(f"{inst.name:<12} {inst.status:<12} {inst.type:<10} {', '.join(inst.ips) or '-'}")
     return 0
 
 

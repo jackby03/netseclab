@@ -7,7 +7,7 @@ lenguaje del laboratorio (instancia, red, snapshot).
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .runner import Result, Runner
 
@@ -19,6 +19,17 @@ class Instance:
     name: str
     status: str
     type: str = "container"
+    ips: list[str] = field(default_factory=list)
+
+
+def _direcciones(inst: dict) -> list[str]:
+    salida: list[str] = []
+    estado = (inst.get("state") or {}).get("network") or []
+    for red in estado:
+        for direccion in red.get("addresses") or []:
+            if direccion.get("family") == "inet" and direccion.get("scope") == "global":
+                salida.append(str(direccion.get("address")))
+    return salida
 
 
 class Incus:
@@ -57,6 +68,7 @@ class Incus:
                 name=str(i.get("name", "")),
                 status=str(i.get("status", "?")),
                 type=str(i.get("type", "container")),
+                ips=_direcciones(i),
             )
             for i in datos
         ]
@@ -88,9 +100,5 @@ class Incus:
             return []
         salida: list[str] = []
         for inst in datos:
-            estado = (inst.get("state") or {}).get("network") or []
-            for red in estado:
-                for direccion in red.get("addresses") or []:
-                    if direccion.get("family") == "inet" and direccion.get("scope") == "global":
-                        salida.append(str(direccion.get("address")))
+            salida.extend(_direcciones(inst))
         return salida

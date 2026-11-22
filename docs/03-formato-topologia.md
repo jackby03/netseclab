@@ -171,11 +171,11 @@ Las respuestas de razonamiento se guardan con `lab answer <ejercicio> "texto"` e
 
 ## 7. Lo que el formato no hace (todavía)
 
-| Carencia | ¿Previsto? |
+| Carencia | Estado |
 |---|---|
-| VLANs dentro de un segmento | Sí, `vlan:` por enlace |
-| Publicar un puerto del nodo al host | Sí, `ports:` por nodo |
-| Enlaces punto a punto entre dos nodos sin red intermedia | Sí, `links: [{peer: otro-nodo}]` |
-| Límites de CPU/RAM/disco | Sí, `resources:` |
+| VLANs dentro de un segmento | **Implementado**: `vlan:` por enlace |
+| Publicar un puerto del nodo al host | Previsto: `ports:` por nodo |
+| Enlaces punto a punto entre dos nodos sin red intermedia | Previsto: `links: [{peer: otro-nodo}]` |
+| Límites de CPU/RAM/disco | **Implementado**: `resources:` |
 | Topologías grandes (>50 nodos) | No es el objetivo; el límite práctico es el portátil |
 | Compatibilidad con Containerlab o GNS3 | No; se puede exportar el diagrama, no el fichero |

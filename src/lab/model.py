@@ -45,7 +45,7 @@ CLAVES = {
         "version", "name", "description", "domain", "defaults",
         "networks", "nodes", "profiles", "policies", "telemetry",
     },
-    "red": {"id", "cidr", "type", "mode", "addressing", "gateway", "vlan", "routes", "parent"},
+    "red": {"id", "cidr", "type", "mode", "addressing", "gateway", "routes", "parent"},
     "nodo": {
         "name", "image", "links", "toolsets", "packages", "assets", "startup", "sysctls",
         "aliases", "resources", "dhcp_server", "dns_server", "firewall", "hostname", "env",
@@ -133,9 +133,8 @@ class Network:
     mode: str = "switch"
     addressing: str = "auto"
     gateway: str = ""
-    vlan: int | None = None
-    routes: list[tuple[str, str]] = field(default_factory=list)
     parent: str = ""
+    routes: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def bridge(self) -> str:
@@ -410,10 +409,6 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
         else:
             gateway = ""
 
-        vlan = data.get("vlan")
-        if vlan is not None and not (1 <= int(vlan) <= 4094):
-            sc.add(f"{where}.vlan", "debe estar entre 1 y 4094")
-
         parent = str(data.get("parent", "") or "")
         if tipo == "bridged" and not parent:
             sc.add(
@@ -431,7 +426,6 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
             mode=modo,
             addressing=addressing,
             gateway=str(gateway),
-            vlan=int(vlan) if isinstance(vlan, int) else None,
             routes=_parse_routes(data.get("routes"), f"{where}.routes", sc),
             parent=parent,
         )
