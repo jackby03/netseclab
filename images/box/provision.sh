@@ -11,9 +11,40 @@ exec < /dev/null
 
 export DEBIAN_FRONTEND=noninteractive
 
+# cloud-init también toca apt al primer arranque. Si empezamos a la vez, chocamos
+# por el lock de /var/lib/apt/lists.
+echo "== esperando a cloud-init"
+cloud-init status --wait >/dev/null 2>&1 || true
+
+apt_update() {
+  local intentos=0
+  until apt-get update -qq; do
+    intentos=$((intentos + 1))
+    if [ "$intentos" -ge 5 ]; then
+      echo "error: apt-get update no consigue el lock"
+      return 1
+    fi
+    echo "  apt ocupado, reintentando en 5 s ($intentos/5)"
+    sleep 5
+  done
+}
+
+apt_install() {
+  local intentos=0
+  until DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$@"; do
+    intentos=$((intentos + 1))
+    if [ "$intentos" -ge 5 ]; then
+      echo "error: no se pudieron instalar los paquetes"
+      return 1
+    fi
+    echo "  apt ocupado, reintentando en 5 s ($intentos/5)"
+    sleep 5
+  done
+}
+
 echo "== paquetes base"
-apt-get update -qq
-apt-get install -y -qq \
+apt_update
+apt_install \
   incus openvswitch-switch bridge-utils \
   tcpdump curl jq ca-certificates \
   python3 python3-yaml openssh-server
@@ -81,7 +112,7 @@ systemctl enable lab-ssh-keys.service
 echo "== red de gestión, independiente de cloud-init"
 # cloud-init configuró la interfaz del build (la de QEMU); en VMware la interfaz
 # se llama de otra forma. Un servicio propio pide DHCP en todas las que haya.
-apt-get install -y -qq isc-dhcp-client
+apt_install isc-dhcp-client
 cat > /etc/systemd/system/lab-mgmt-net.service <<'UNIT'
 [Unit]
 Description=DHCP en las interfaces de gestión

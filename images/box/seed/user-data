@@ -19,7 +19,8 @@ users:
 ssh_pwauth: false
 disable_root: true
 
-package_update: true
+# Sin package_update: el provisionamiento instala lo que necesita, y así cloud-init
+# no se pelea por el lock de apt con él.
 
 write_files:
   - path: /etc/motd

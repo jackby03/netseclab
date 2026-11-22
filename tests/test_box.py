@@ -154,6 +154,18 @@ def test_se_espera_al_demonio_de_incus():
     assert "no se pudo crear el pool" in provision
 
 
+def test_la_semilla_no_lucha_por_apt_con_el_provisionamiento():
+    crudo = (CAJA / "seed" / "user-data").read_text(encoding="utf-8")
+    datos = yaml.safe_load(crudo.replace("__PUBKEY__", "ssh-ed25519 AAAA prueba"))
+    # package_update lanzaría apt-get a la vez que el provisionamiento
+    assert "package_update" not in datos
+
+    provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
+    assert "cloud-init status --wait" in provision
+    assert "apt_install" in provision
+    assert "reintentando" in provision
+
+
 def test_la_caja_configura_su_propia_red():
     """Sin cloud-init nadie pide IP al arrancar en VMware."""
     provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
