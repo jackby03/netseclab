@@ -95,8 +95,7 @@ if ! imagen_existe "lab-node-v1"; then
 fi
 
 if ! imagen_existe "lab-web-v1"; then
-  incus copy lab-node-v1 proto-web
-  incus start proto-web
+  incus launch lab-node-v1 proto-web
   incus exec proto-web -- sh -c \
     'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
        apache2 php libapache2-mod-php'
@@ -107,8 +106,7 @@ if ! imagen_existe "lab-web-v1"; then
 fi
 
 if ! imagen_existe "lab-ids-v1"; then
-  incus copy lab-node-v1 proto-ids
-  incus start proto-ids
+  incus launch lab-node-v1 proto-ids
   incus exec proto-ids -- sh -c \
     'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq suricata'
   incus stop proto-ids
@@ -117,8 +115,7 @@ if ! imagen_existe "lab-ids-v1"; then
 fi
 
 if ! imagen_existe "lab-attacker-v1"; then
-  incus copy lab-node-v1 proto-attacker
-  incus start proto-attacker
+  incus launch lab-node-v1 proto-attacker
   incus exec proto-attacker -- sh -c \
     'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
        masscan whatweb ffuf gobuster nikto dirb tshark tcpflow'
