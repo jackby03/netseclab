@@ -20,6 +20,10 @@ from .catalog import load_images, load_toolsets, resolve_image
 from .generate import dnsmasq, hosts, netconf, nftables, telemetry
 from .model import Node, Topology
 
+# Perfil de Incus con el disco raíz de los nodos. El perfil por defecto trae además
+# una tarjeta en incusbr0, que no queremos en un laboratorio aislado.
+PERFIL_NODOS = "netseclab"
+
 
 @dataclass
 class Step:
@@ -211,6 +215,35 @@ def build(
     steps: list[Step] = []
     redes = [n for n in topo.networks.values() if any(x.link_to(n.name) for x in nodes)]
 
+    # ── perfil de los nodos
+    # El disco raíz lo aporta un perfil. No sirve --no-profiles: sin perfil no hay
+    # disco raíz y la instancia no arranca. El perfil por defecto trae una tarjeta
+    # en incusbr0 que no queremos, así que se crea uno a medida.
+    steps.append(
+        Step(
+            "perfil",
+            argv=["incus", "profile", "create", PERFIL_NODOS],
+            note=f"perfil {PERFIL_NODOS} para los nodos (si ya existe, se ignora)",
+        )
+    )
+    steps.append(
+        Step(
+            "perfil",
+            argv=[
+                "incus",
+                "profile",
+                "device",
+                "add",
+                PERFIL_NODOS,
+                "root",
+                "disk",
+                "path=/",
+                "pool=default",
+            ],
+            note="disco raíz de los nodos",
+        )
+    )
+
     # ── redes
     for net in redes:
         argv = ["incus", "network", "create", net.bridge, "--type=bridge"]
@@ -250,7 +283,8 @@ def build(
                     "launch",
                     node.image,
                     node.name,
-                    "--no-profiles",
+                    "--profile",
+                    PERFIL_NODOS,
                     f"--config=limits.cpu={node.resources.cpus}",
                     f"--config=limits.memory={node.resources.memory}",
                 ],

@@ -49,10 +49,10 @@ def test_un_error_de_verdad_para_el_plan(plan):
 
 
 def test_keep_going_continua_tras_el_fallo(plan):
-    runner = RecordingRunner({"device add": (1, "", "boom")})
+    runner = RecordingRunner({"config device add": (1, "", "boom")})
     outcome = execute(plan, runner, seguir=True)
     assert not outcome.ok
-    # sin keep-going se pararía en el primer device; con keep-going fallan los cinco
+    # sin keep-going se pararía en el primer device; con keep-going fallan todos
     assert len(outcome.fallos) == 5
     assert outcome.ejecutados > 5
 

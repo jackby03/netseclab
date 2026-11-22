@@ -15,7 +15,7 @@ import yaml
 
 from .catalog import load_images, resolve_image
 from .errors import Issue, LabErrors, Scope
-from .plan import Step
+from .plan import PERFIL_NODOS, Step
 
 CLAVES = {"name", "base", "version", "description", "packages", "assets", "startup", "size"}
 SALIDA = "lab-build"
@@ -94,7 +94,7 @@ def build_plan(recipe: ImageRecipe, root: Path | None = None) -> list[Step]:
     pasos: list[Step] = [
         Step("limpiar", argv=["incus", "delete", inst, "--force"],
              note=f"por si quedó una construcción a medias de {recipe.name}"),
-        Step("crear", argv=["incus", "launch", base, inst, "--no-profiles"],
+        Step("crear", argv=["incus", "launch", base, inst, "--profile", PERFIL_NODOS],
              note=f"{recipe.name} desde {base}"),
     ]
 

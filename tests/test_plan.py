@@ -32,7 +32,7 @@ def test_fases_en_orden(plan):
     for step in plan.steps:
         if not fases or fases[-1] != step.phase:
             fases.append(step.phase)
-    assert fases == ["network", "node", "packages", "files", "enable", "post"]
+    assert fases == ["perfil", "network", "node", "packages", "files", "enable", "post"]
 
 
 def test_se_crean_las_tres_redes(plan):

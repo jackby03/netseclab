@@ -69,6 +69,14 @@ if ! incus storage list --format csv 2>/dev/null | grep -q .; then
   exit 1
 fi
 
+echo "== perfil para los nodos del laboratorio"
+# El disco raíz lo aporta un perfil. El perfil por defecto trae además una tarjeta
+# en incusbr0 que no queremos en los nodos, así que hacemos uno a medida.
+if ! incus profile show netseclab >/dev/null 2>&1; then
+  incus profile create netseclab
+  incus profile device add netseclab root disk path=/ pool=default
+fi
+
 echo "== imágenes de nodo, con lo imprescindible dentro"
 # El laboratorio tiene que funcionar sin Internet, así que los nodos no pueden
 # instalar nada al arrancar: la imagen ya trae las herramientas comunes.
@@ -77,7 +85,7 @@ imagen_existe() {
 }
 
 if ! imagen_existe "lab-node-v1"; then
-  incus launch images:debian/13 proto-node --no-profiles
+  incus launch images:debian/13 proto-node
   incus exec proto-node -- sh -c \
     'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
        openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client'
