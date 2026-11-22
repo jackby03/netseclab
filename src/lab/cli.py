@@ -199,7 +199,19 @@ def cmd_up(args) -> int:
     if _sin_incus():
         return 3
 
-    outcome = execute(plan, _runner(), seguir=args.keep_going)
+    # Sin esto la pantalla se queda congelada durante un minuto y parece colgada.
+    total = len(plan.steps)
+    hechos = 0
+
+    def progreso(step) -> None:
+        nonlocal hechos
+        hechos += 1
+        etiqueta = step.note or step.phase
+        print(f"  [{hechos:>2}/{total}] {etiqueta}", flush=True)
+
+    print("ejecutando el plan (Ctrl-C para interrumpir; volver a lanzarlo continúa):")
+    outcome = execute(plan, _runner(), seguir=args.keep_going, on_step=progreso)
+    print()
     print(outcome.resumen())
     for comando, error in outcome.fallos:
         print(f"  falló: {comando}", file=sys.stderr)
