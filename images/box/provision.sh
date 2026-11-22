@@ -232,6 +232,15 @@ if [ -f /etc/default/grub ]; then
 fi
 
 echo "== limpieza para distribuir"
+# El artefacto no debe llevar laboratorios a medio montar: ni instancias ni redes
+# `nvm-*`. Las imágenes y el perfil sí se quedan.
+for instancia in $(incus list --format csv | cut -d, -f1); do
+  [ -n "$instancia" ] && incus delete "$instancia" --force >/dev/null 2>&1 || true
+done
+for red in $(incus network list --format csv | cut -d, -f1 | grep '^nvm-' || true); do
+  incus network delete "$red" >/dev/null 2>&1 || true
+done
+incus profile delete netseclab >/dev/null 2>&1 || true
 # NO se hace `apt-get clean`: la caché de .deb es lo que permite instalar las
 # herramientas de cada ejercicio sin Internet. Solo se limpian las listas.
 rm -rf /var/lib/apt/lists/*
