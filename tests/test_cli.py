@@ -20,7 +20,7 @@ EJERCICIO = Path(__file__).resolve().parents[1] / "lab" / "exercises" / "06-fuzz
 def test_validate_ok(capsys):
     assert cli.main(["validate", str(EJEMPLOS / "example.net.yaml")]) == 0
     salida = capsys.readouterr().out
-    assert "OK" in salida and "5 nodos" in salida
+    assert "OK" in salida and "7 nodos" in salida
 
 
 def test_validate_detecta_errores(workdir, capsys):
