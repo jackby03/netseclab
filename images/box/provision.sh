@@ -53,6 +53,15 @@ apt_install \
 echo "== incus"
 systemctl enable --now incus.socket incus.service
 
+# El demonio de Incus solo habla con root y con su grupo administrador. El usuario
+# `lab` se creó antes de instalar Incus, así que hay que añadirlo a mano o `lab up`
+# falla con "You don't have the needed permissions to talk to the incus daemon".
+for grupo in incus-admin incus; do
+  if getent group "$grupo" >/dev/null 2>&1; then
+    usermod -aG "$grupo" lab && echo "  usuario lab añadido al grupo $grupo"
+  fi
+done
+
 echo "== esperando al demonio de incus"
 for _ in $(seq 1 60); do
   incus version >/dev/null 2>&1 && break

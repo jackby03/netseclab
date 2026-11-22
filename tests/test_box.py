@@ -155,6 +155,13 @@ def test_el_provisionamiento_no_se_ejecuta_por_stdin():
     assert "exec < /dev/null" in provision
 
 
+def test_el_usuario_entra_en_el_grupo_de_incus():
+    """Sin esto, `lab up` no puede hablar con el demonio de Incus."""
+    provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
+    assert 'for grupo in incus-admin incus' in provision
+    assert 'usermod -aG "$grupo" lab' in provision
+
+
 def test_se_espera_al_demonio_de_incus():
     provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
     assert "incus version >/dev/null 2>&1" in provision
