@@ -28,8 +28,9 @@ def _bloques(texto: str) -> dict[str, int]:
         "fi": len(re.findall(r"(?m)^\s*fi\b", limpio)),
         "case": len(re.findall(r"(?m)^\s*case\s", limpio)),
         "esac": len(re.findall(r"(?m)^\s*esac\b", limpio)),
+        # do y done pueden ir en la misma línea (por ejemplo dentro de un ExecStart)
         "do": len(re.findall(r"\bdo\b", limpio)),
-        "done": len(re.findall(r"(?m)^\s*done\b", limpio)),
+        "done": len(re.findall(r"\bdone\b", limpio)),
     }
 
 
@@ -151,3 +152,13 @@ def test_se_espera_al_demonio_de_incus():
     assert "incus version >/dev/null 2>&1" in provision
     assert "el demonio de incus no responde" in provision
     assert "no se pudo crear el pool" in provision
+
+
+def test_la_caja_configura_su_propia_red():
+    """Sin cloud-init nadie pide IP al arrancar en VMware."""
+    provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
+    assert "lab-mgmt-net.service" in provision
+    assert "dhclient" in provision
+    assert "systemctl enable lab-mgmt-net.service" in provision
+    # y la configuración de cloud-init para la interfaz del build se retira
+    assert "rm -f /etc/network/interfaces.d/50-cloud-init" in provision

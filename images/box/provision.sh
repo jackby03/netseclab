@@ -78,6 +78,29 @@ WantedBy=multi-user.target
 UNIT
 systemctl enable lab-ssh-keys.service
 
+echo "== red de gestión, independiente de cloud-init"
+# cloud-init configuró la interfaz del build (la de QEMU); en VMware la interfaz
+# se llama de otra forma. Un servicio propio pide DHCP en todas las que haya.
+apt-get install -y -qq isc-dhcp-client
+cat > /etc/systemd/system/lab-mgmt-net.service <<'UNIT'
+[Unit]
+Description=DHCP en las interfaces de gestión
+After=network-pre.target
+Before=network.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'for p in /sys/class/net/*; do i=$(basename "$p"); [ "$i" = lo ] && continue; dhclient -1 "$i" || true; done'
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl enable lab-mgmt-net.service
+# la configuración de cloud-init apuntaba a la interfaz del build: no molesta, pero sobra
+rm -f /etc/network/interfaces.d/50-cloud-init /etc/network/interfaces.d/50-cloud-init.cfg
+
 echo "== limpieza para distribuir"
 apt-get clean
 cloud-init clean --logs --seed || true
