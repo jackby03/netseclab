@@ -53,14 +53,21 @@ apt_install \
 echo "== incus"
 systemctl enable --now incus.socket incus.service
 
-# El demonio de Incus solo habla con root y con su grupo administrador. El usuario
-# `lab` se creó antes de instalar Incus, así que hay que añadirlo a mano o `lab up`
-# falla con "You don't have the needed permissions to talk to the incus daemon".
-for grupo in incus-admin incus; do
-  if getent group "$grupo" >/dev/null 2>&1; then
-    usermod -aG "$grupo" lab && echo "  usuario lab añadido al grupo $grupo"
-  fi
-done
+# El demonio de Incus solo habla con root y con el grupo dueño de su socket. El
+# usuario `lab` se creó antes de instalar Incus, así que hay que añadirlo a mano
+# o `lab up` falla con "You don't have the needed permissions to talk to the
+# incus daemon". El nombre del grupo se lee del socket: no todos los paquetes lo
+# llaman igual.
+GRUPO_INCUS="$(stat -c '%G' /var/lib/incus/unix.socket 2>/dev/null || true)"
+if [ -n "$GRUPO_INCUS" ] && [ "$GRUPO_INCUS" != "root" ]; then
+  usermod -aG "$GRUPO_INCUS" lab && echo "  usuario lab añadido al grupo $GRUPO_INCUS"
+else
+  for grupo in incus-admin incus; do
+    if getent group "$grupo" >/dev/null 2>&1; then
+      usermod -aG "$grupo" lab && echo "  usuario lab añadido al grupo $grupo"
+    fi
+  done
+fi
 
 echo "== esperando al demonio de incus"
 for _ in $(seq 1 60); do
