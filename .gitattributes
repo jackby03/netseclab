@@ -1,0 +1,20 @@
+# Los scripts se ejecutan en Linux: siempre LF, también en el checkout.
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+Makefile text eol=lf
+*.vmx text eol=lf
+*.nft text eol=lf
+*.rules text eol=lf
+
+# binarios
+*.png binary
+*.jpg binary
+*.pdf binary
+*.qcow2 binary
+*.vmdk binary
+*.ova binary

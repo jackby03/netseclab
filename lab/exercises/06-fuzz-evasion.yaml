@@ -1,0 +1,65 @@
+id: 06-fuzz-evasion
+title: Descubrimiento de directorios y evasión de IDS
+lab: ../examples/fuzz-evasion.yaml
+profile: mini
+initial: clean
+difficulty: media
+duration: 45 min
+
+brief: |
+  La web de www.lab esconde un directorio que no aparece enlazado desde ninguna página.
+  Dentro hay un respaldo de la base de datos.
+
+  Tu objetivo es obtener ese respaldo desde evil1 y guardarlo en ~/evidencia/db.sql.
+
+  Condición: el IDS que corre en fw no debe generar ninguna alerta con tu dirección de origen.
+  Si tu tráfico aparece en el log de Suricata, el ejercicio no cuenta como superado, aunque
+  hayas descargado el fichero.
+
+  El cortafuegos solo permite tráfico de ext hacia la dmz en el puerto 80.
+
+tasks:
+  - Identifica el servidor web y su tecnología.
+  - Encuentra el directorio oculto.
+  - Descarga el respaldo en ~/evidencia/db.sql.
+  - Repite el proceso sin disparar el IDS y explica qué cambiaste.
+
+hints:
+  - >
+    El IDS alerta por dos motivos: la cadena de agente de usuario de las herramientas
+    por defecto y la tasa de peticiones. Se puede atacar cada uno por separado.
+  - >
+    Puedes mirar qué está viendo el IDS antes de lanzar el ataque: la captura del
+    segmento dmz está disponible en evil1 con el toolset sniff.
+  - Una petición lenta es una petición invisible para una regla de umbral.
+
+checks:
+  - assert: http-status evil1 -> http://10.20.1.10/backup/ is 200
+    message: No has encontrado el directorio oculto.
+
+  - assert: file evil1 /home/user/evidencia/db.sql exists
+    message: No has guardado el respaldo donde se pide.
+
+  - assert: ids-alerts src=10.20.0.30, count=0
+    message: >
+      El IDS ha registrado alertas con tu IP. Mira el motivo en el log y vuelve a intentarlo
+      con una técnica más discreta.
+
+  - assert: answer "¿Qué dos señales usaba la regla del IDS para detectar el escaneo?" contains "agente de usuario"
+    message: Revisa las reglas en /etc/suricata/rules/lab.rules del nodo fw.
+
+solution: |
+  Las reglas de fw detectan dos cosas por separado:
+
+  1. El agente de usuario por defecto de ffuf/gobuster.
+     Se evita con -H "User-Agent: Mozilla/5.0 ..." o usando una herramienta que lo permita.
+
+  2. Un umbral de más de 50 peticiones 404 desde la misma IP en 10 segundos.
+     Se evita con -rate 4 o -p 0.3s.
+
+  Comando de referencia:
+
+    ffuf -u http://10.20.1.10/FUZZ -w /usr/share/wordlists/common-2k.txt \
+         -H "User-Agent: Mozilla/5.0" -rate 3 -mc 200,301,302 -o /tmp/r.json
+
+  El directorio es /backup/ y el fichero db.sql se descarga con curl.

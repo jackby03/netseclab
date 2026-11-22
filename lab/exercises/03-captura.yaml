@@ -1,0 +1,48 @@
+id: 03-captura
+title: Ver el tráfico de un segmento
+lab: ../examples/example.net.yaml
+profile: mini
+initial: initial
+difficulty: fácil
+duration: 20 min
+
+brief: |
+  En un switch normal, ponerse en modo promiscuo no basta para ver el tráfico de los demás: el
+  switch solo entrega a cada puerto lo que va dirigido a él.
+
+  Este laboratorio tiene la red externa configurada como *hub*. Compruébalo capturando el tráfico
+  mientras otra máquina navega.
+
+tasks:
+  - Captura el segmento ext mientras exta pide la página de www.
+  - Localiza la petición HTTP en la captura.
+  - Explica por qué en un switch de verdad no la verías.
+
+hints:
+  - "Con `lab capture <topología> --net ext --seconds 20` obtienes el pcap en `capture/ext.pcap`."
+  - Mientras capturas, lanza la petición desde exta con `curl http://www/`.
+  - Mira el campo `mode` de la red ext en el YAML.
+
+checks:
+  - assert: http-status exta -> http://www/ is 200
+    message: Primero comprueba que exta llega a www.
+
+  - assert: capture ext, contains="GET /"
+    message: >
+      No aparece ninguna petición HTTP en capture/ext.pcap. Captura el segmento ext mientras se
+      pide la página, y recuerda que `lab capture` termina solo cuando pasa el tiempo indicado.
+
+  - assert: answer "¿Por qué se ve el tráfico si no es tu máquina?" contains "hub"
+    message: Piensa en la diferencia entre un hub y un switch.
+
+solution: |
+  La red ext está declarada con `mode: hub`, así que el bridge se configura con `learning off`:
+  no aprende direcciones MAC y reenvía todas las tramas a todos los puertos.
+
+  En un switch real, el puerto de tu máquina solo recibe:
+    - lo dirigido a su MAC,
+    - el broadcast y el multicast,
+    - y lo que no esté aprendido todavía.
+
+  Para ver el resto haría falta un puerto espejo, que es justo lo que usa la red dmz de este
+  laboratorio (`mode: mirror`, con Open vSwitch).

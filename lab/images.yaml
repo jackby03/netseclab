@@ -1,0 +1,14 @@
+# Catálogo de imágenes del laboratorio.
+#
+# - Las referencias `images:...` son remotas y se descargan la primera vez; el artefacto final las
+#   lleva cacheadas para funcionar sin Internet.
+# - Las referencias `lab/<nombre>:<versión>` son imágenes construidas por `lab image build`.
+images:
+  debian13: images:debian/13
+  web: lab/web:1
+  attacker: lab/attacker:1
+  ids: lab/ids:1
+  soc-lite: lab/soc-lite:1
+  soc-wazuh: lab/soc-wazuh:1
+  monitoring: lab/monitoring:1
+  fileserver: lab/fileserver:1

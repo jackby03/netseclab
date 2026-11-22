@@ -1,0 +1,28 @@
+#cloud-config
+# Semilla de arranque para construir la caja. Solo se usa durante la construcción.
+
+hostname: netseclab
+fqdn: netseclab.lab
+manage_etc_hosts: true
+
+users:
+  - name: lab
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: false
+    ssh_authorized_keys:
+      - __PUBKEY__
+
+ssh_pwauth: false
+disable_root: true
+
+package_update: true
+
+write_files:
+  - path: /etc/motd
+    content: |
+      netseclab — laboratorio de seguridad en redes
+      Escribe `lab --help` para empezar.
+
+runcmd:
+  - sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config

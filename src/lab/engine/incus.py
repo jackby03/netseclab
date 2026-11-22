@@ -1,0 +1,96 @@
+"""Envoltorio fino sobre `incus`.
+
+No pretende cubrir la API: solo las consultas y acciones que necesita el motor, con nombres en el
+lenguaje del laboratorio (instancia, red, snapshot).
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+
+from .runner import Result, Runner
+
+SNAPSHOT_INICIAL = "initial"
+
+
+@dataclass
+class Instance:
+    name: str
+    status: str
+    type: str = "container"
+
+
+class Incus:
+    def __init__(self, runner: Runner):
+        self.runner = runner
+
+    # ------------------------------------------------------------------ básico
+
+    def _run(self, *args: str, stdin: str | None = None) -> Result:
+        return self.runner.run(["incus", *args], stdin=stdin)
+
+    def disponible(self) -> bool:
+        return self._run("version").ok
+
+    def red_existe(self, nombre: str) -> bool:
+        return self._run("network", "show", nombre).ok
+
+    def instancia_existe(self, nombre: str) -> bool:
+        return self._run("info", nombre).ok
+
+    def ejecutar(self, nodo: str, *argv: str) -> Result:
+        return self._run("exec", nodo, "--", *argv)
+
+    # ------------------------------------------------------------------ consultas
+
+    def listar(self) -> list[Instance]:
+        res = self._run("list", "--format", "json")
+        if not res.ok:
+            return []
+        try:
+            datos = json.loads(res.out or "[]")
+        except json.JSONDecodeError:
+            return []
+        return [
+            Instance(
+                name=str(i.get("name", "")),
+                status=str(i.get("status", "?")),
+                type=str(i.get("type", "container")),
+            )
+            for i in datos
+        ]
+
+    def snapshots(self, nodo: str) -> list[str]:
+        res = self._run("snapshot", "list", nodo, "--format", "csv", "-c", "name")
+        if res.ok:
+            return [linea.strip() for linea in res.out.splitlines() if linea.strip()]
+        res = self._run("snapshot", "list", nodo)
+        if not res.ok:
+            return []
+        nombres = []
+        for linea in res.out.splitlines()[1:]:
+            partes = linea.split()
+            if partes:
+                nombres.append(partes[0])
+        return nombres
+
+    def tiene_snapshot(self, nodo: str, nombre: str) -> bool:
+        return nombre in self.snapshots(nodo)
+
+    def ips(self, nodo: str) -> list[str]:
+        res = self._run("list", nodo, "--format", "json")
+        if not res.ok:
+            return []
+        try:
+            datos = json.loads(res.out or "[]")
+        except json.JSONDecodeError:
+            return []
+        salida: list[str] = []
+        for inst in datos:
+            estado = (inst.get("state") or {}).get("network") or []
+            for red in estado:
+                for direccion in red.get("addresses") or []:
+                    if direccion.get("family") == "inet" and direccion.get("scope") == "global":
+                        salida.append(str(direccion.get("address")))
+        return salida

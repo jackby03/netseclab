@@ -1,0 +1,88 @@
+version: 1
+name: pivot-lab
+description: >
+  Escenario de pivoteo. El atacante está en la red externa y solo alcanza la DMZ; la red interna
+  queda detrás de "pivot", que tiene una pata en cada una. Sirve para practicar movimiento lateral,
+  captura y reglas de cortafuegos.
+
+networks:
+  ext:
+    cidr: 10.10.30.0/24
+    type: isolated
+    mode: hub            # hub: el sniffing funciona sin trucos
+    gateway: 10.10.30.254
+  dmz:
+    cidr: 10.10.20.0/24
+    type: isolated
+    mode: mirror         # switch realista con puerto espejo capturable
+    gateway: 10.10.20.254
+  int-a:
+    cidr: 10.10.10.0/24
+    type: isolated
+    mode: switch
+    gateway: 10.10.10.254
+  int-b:
+    cidr: 10.10.11.0/24
+    type: isolated
+    mode: switch
+
+nodes:
+  - name: attacker
+    image: debian13
+    toolsets: [recon, sniff]
+    links:
+      - { net: ext, ip: 10.10.30.10 }
+
+  - name: fw
+    image: debian13
+    packages: [nftables]
+    sysctls:
+      net.ipv4.ip_forward: 1
+    links:
+      - { net: ext, ip: 10.10.30.254 }
+      - { net: dmz, ip: 10.10.20.254 }
+
+  - name: www
+    image: debian13
+    packages: [apache2, php, libapache2-mod-php]
+    startup: |
+      systemctl enable --now apache2
+    links:
+      - { net: dmz, ip: 10.10.20.10 }
+    aliases: [www]
+
+  - name: pivot
+    image: debian13
+    sysctls:
+      net.ipv4.ip_forward: 1
+    links:
+      - { net: dmz, ip: 10.10.20.50 }
+      - { net: int-a, ip: 10.10.10.254 }
+
+  - name: mon
+    image: debian13
+    packages: [prometheus-node-exporter]
+    startup: |
+      systemctl enable --now prometheus-node-exporter
+    links:
+      - { net: int-b, ip: 10.10.11.10 }
+
+  - name: inta1
+    image: debian13
+    links:
+      - { net: int-a }
+
+  - name: inta2
+    image: debian13
+    links:
+      - { net: int-a }
+
+  - name: inta3
+    image: debian13
+    links:
+      - { net: int-a }
+
+profiles:
+  mini: [attacker, fw, www]
+  std: [attacker, fw, www, pivot, inta1, mon]
+  full: ["*"]

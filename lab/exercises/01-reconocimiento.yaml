@@ -1,0 +1,48 @@
+id: 01-reconocimiento
+title: Reconocimiento de servicios con nmap
+lab: ../examples/example.net.yaml
+profile: std
+initial: initial
+difficulty: fácil
+duration: 20 min
+
+brief: |
+  Desde exta, averigua qué servicios expone www.example.net.
+
+  No todos los puertos se comportan igual: unos contestan, otros rechazan y otros simplemente no
+  responden. Distinguirlos es la primera lección de un análisis de red.
+
+tasks:
+  - Ejecuta un escaneo de los 1000 puertos más comunes.
+  - Repite el escaneo de todos los puertos y compara los tiempos.
+  - Identifica la versión del servidor web.
+
+hints:
+  - Un puerto «closed» contesta que no hay nada escuchando; uno «filtered» no contesta nada.
+  - El cortafuegos está en el camino: mira qué reglas tiene fw para el tráfico que va a la DMZ.
+
+checks:
+  - assert: port-state exta -> www:80 is open
+    message: El puerto 80 debería estar abierto en www.
+
+  - assert: port-state exta -> www:443 is closed
+    message: >
+      El 443 debería aparecer «closed», no «filtered». Eso significa que el cortafuegos acepta el
+      paquete y es el servidor el que lo rechaza.
+
+  - assert: port-state exta -> www:22 is filtered
+    message: >
+      El 22 debería estar filtrado desde exta. Desde base, en cambio, se llega: piensa por qué.
+
+  - assert: answer "¿Por qué el 443 aparece closed y el resto filtered?" contains "reject"
+    message: Revisa las reglas de fw en /etc/lab/fw.nft.
+
+solution: |
+  fw tiene dos reglas distintas para dmza:
+
+    tcp dport 80  accept          -> el paquete llega y Apache responde
+    tcp dport 443 reject with tcp reset   -> el cortafuegos contesta RST: nmap lo ve «closed»
+    resto         drop            -> nadie contesta: nmap lo ve «filtered»
+
+  La diferencia no es cosmética: «closed» demuestra que el puerto está alcanzable y que no hay
+  servicio; «filtered» demuestra que hay un filtro en medio.

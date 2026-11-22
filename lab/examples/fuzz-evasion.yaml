@@ -1,0 +1,49 @@
+version: 1
+name: fuzz-evasion
+description: >
+  El alumno debe descubrir un directorio oculto en una web PHP y extraer un respaldo,
+  atravesando el cortafuegos, sin generar alertas en el IDS. Escenario mínimo de tres nodos.
+
+networks:
+  ext:
+    cidr: 10.20.0.0/24
+    type: nat              # salida a Internet solo si el alumno la pide con --uplink
+    mode: hub              # hub: el alumno puede olfatear su propio tráfico
+  dmz:
+    cidr: 10.20.1.0/24
+    type: isolated
+    mode: mirror           # switch con puerto espejo: el IDS ve todo lo que entra y sale
+
+nodes:
+  - name: evil1
+    image: debian13
+    toolsets: [webfuzz, sniff]
+    links:
+      - { net: ext, ip: 10.20.0.30 }
+
+  - name: fw
+    image: debian13
+    links: [ext, dmz]
+    packages: [nftables, suricata]
+    sysctls:
+      net.ipv4.ip_forward: 1
+    assets:
+      - { src: assets/fuzz/fw.nft,    dst: /etc/lab/fw.nft }
+      - { src: assets/fuzz/lab.rules, dst: /etc/suricata/rules/lab.rules }
+    startup: |
+      nft -f /etc/lab/fw.nft
+      suricata -D -i eth1 -S /etc/suricata/rules/lab.rules
+
+  - name: www
+    image: debian13
+    links:
+      - { net: dmz, ip: 10.20.1.10 }
+    aliases: [www]
+    packages: [apache2, php, libapache2-mod-php]
+    assets:
+      - { src: assets/fuzz/site, dst: /var/www/html }
+    startup: |
+      systemctl enable --now apache2
+
+profiles:
+  mini: [evil1, fw, www]

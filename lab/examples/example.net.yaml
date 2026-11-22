@@ -1,0 +1,92 @@
+version: 1
+name: example.net
+domain: example.net
+description: >
+  Reproducción del laboratorio clásico: tres segmentos, un cortafuegos que los une y un nodo base
+  que sirve DHCP y DNS. Es el escenario de las prácticas de conectividad, captura y nmap, con el
+  mismo plan de direccionamiento del original (10.5.<red>.<nodo>).
+
+networks:
+  ext:
+    id: 0
+    cidr: 10.5.0.0/24
+    type: isolated
+    mode: hub
+    addressing: dhcp
+    gateway: 10.5.0.1
+    routes:
+      - { to: 10.5.1.0/24, via: 10.5.0.254 }
+      - { to: 10.5.2.0/24, via: 10.5.0.254 }
+  dmz:
+    id: 1
+    cidr: 10.5.1.0/24
+    type: isolated
+    mode: mirror
+    addressing: dhcp
+    gateway: 10.5.1.254
+  int:
+    id: 2
+    cidr: 10.5.2.0/24
+    type: isolated
+    mode: switch
+    addressing: dhcp
+    gateway: 10.5.2.254
+
+nodes:
+  - name: base
+    image: debian13
+    dhcp_server: true
+    dns_server: true
+    links:
+      - { net: ext, ip: 10.5.0.1 }
+      - { net: dmz, ip: 10.5.1.1 }
+      - { net: int, ip: 10.5.2.1 }
+
+  - name: fw
+    image: debian13
+    firewall: true
+    packages: [nftables, tcpdump]
+    sysctls:
+      net.ipv4.ip_forward: 1
+    links:
+      - { net: ext, ip: 10.5.0.254 }
+      - { net: dmz, ip: 10.5.1.254 }
+      - { net: int, ip: 10.5.2.254 }
+
+  - name: exta
+    image: debian13
+    toolsets: [recon, sniff]
+    links:
+      - { net: ext, ip: 10.5.0.10 }
+
+  - name: dmza
+    image: debian13
+    aliases: [www]
+    packages: [apache2, php, libapache2-mod-php]
+    startup: |
+      systemctl enable --now apache2
+    links:
+      - { net: dmz, ip: 10.5.1.10 }
+
+  - name: inta
+    image: debian13
+    links:
+      - { net: int, ip: 10.5.2.10 }
+
+policies:
+  # la red interna puede salir a la externa, pero no a la perimetral
+  - { from: int, to: ext, action: accept }
+  - { from: int, to: dmz, action: drop }
+  # desde el exterior solo se llega al 80 de la web: 443 se rechaza (closed) y el resto se filtra
+  - { from: ext, to: dmz, daddr: 10.5.1.10, port: 80, action: accept }
+  - { from: ext, to: dmz, daddr: 10.5.1.10, port: 443, action: reject-reset }
+  - { from: ext, to: dmz, action: drop }
+  # el exterior no entra en la red interna; la perimetral tampoco
+  - { from: ext, to: int, action: drop }
+  - { from: dmz, to: int, action: drop }
+  - { from: dmz, to: ext, action: accept }
+
+profiles:
+  mini: [fw, exta, dmza]
+  std: [base, fw, exta, dmza, inta]
+  full: ["*"]

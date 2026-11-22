@@ -1,0 +1,26 @@
+#!/usr/sbin/nft -f
+# Cortafuegos del escenario de fuzzing.
+#
+# Del exterior solo se llega al puerto 80 de la web. Todo lo demás se descarta en silencio, así que
+# un escaneo verá los puertos como "filtered" y no "closed".
+
+add table inet lab
+flush table inet lab
+
+table inet lab {
+  chain input {
+    type filter hook input priority filter; policy accept;
+    ct state established,related accept
+    iifname "lo" accept
+  }
+
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+    ct state established,related accept
+
+    # ext -> dmz: solo HTTP
+    iifname "eth0" oifname "eth1" tcp dport 80 accept
+
+    # la respuesta de vuelta la cubre la regla de conntrack
+  }
+}

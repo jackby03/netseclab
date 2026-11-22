@@ -1,0 +1,7 @@
+name: attacker
+base: debian13
+version: "1"
+description: Máquina de ataque con las herramientas de reconocimiento y web
+packages: [nmap, masscan, whatweb, ffuf, gobuster, nikto, dirb, curl, jq, tcpdump, tshark]
+startup: |
+  command -v nmap >/dev/null && echo "attacker listo"

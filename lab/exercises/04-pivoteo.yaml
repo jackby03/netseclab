@@ -1,0 +1,59 @@
+id: 04-pivoteo
+title: Movimiento lateral a una red que no está a tu alcance
+lab: ../examples/pivot.yaml
+profile: std
+initial: initial
+difficulty: media
+duration: 40 min
+
+brief: |
+  Estás en la red externa. Alcanzas la DMZ, pero la red interna de gestión (int-a) no responde:
+  no hay ruta hacia ella desde donde estás.
+
+  Dentro de la DMZ hay una máquina, `pivot`, conectada a las dos redes. Tu objetivo es demostrar
+  que desde ella sí se llega a la red interna, y documentar por qué.
+
+tasks:
+  - Comprueba qué alcanzas desde attacker y qué no.
+  - Averigua qué máquina de la DMZ tiene una segunda interfaz.
+  - Comprueba que desde esa máquina sí se llega a int-a.
+  - Explica la diferencia entre estar en una red y enrutar hacia ella.
+
+hints:
+  - "Con `lab status` ves todas las interfaces de cada nodo."
+  - Desde attacker, `ip route` y `traceroute` dicen mucho.
+  - Un nodo con `net.ipv4.ip_forward=1` y dos interfaces es un router, aunque nadie lo haya llamado así.
+
+checks:
+  - assert: reachable attacker -> www is true
+    message: Desde attacker deberías llegar a la DMZ.
+
+  - assert: reachable attacker -> inta1 is false
+    message: >
+      Si desde attacker llegas a inta1, algo del escenario no está como debería: no hay ruta desde
+      la red externa a int-a.
+
+  - assert: reachable pivot -> inta1 is true
+    message: >
+      `pivot` tiene una pata en la DMZ y otra en int-a, así que sí llega. Comprueba también que
+      tiene el reenvío activado.
+
+  - assert: port-state pivot -> inta1:22 is open
+    message: El SSH de inta1 debería estar abierto desde pivot.
+
+  - assert: answer "¿Qué condición tiene que cumplir una máquina para enrutar entre dos redes?" contains "reenvío"
+    message: Piensa en el `ip_forward` y en tener una interfaz en cada red.
+
+solution: |
+  La topología es:
+
+    attacker 10.10.30.10 -- fw -- www 10.10.20.10 -- pivot 10.10.20.50 -- inta1 10.10.10.10
+
+  `fw` solo está en ext y dmz, así que no sabe llegar a int-a: no tiene ruta ni interfaz ahí.
+  `pivot` sí, porque tiene una interfaz en cada red y `net.ipv4.ip_forward=1`.
+
+  Para atacar int-a desde attacker haría falta:
+    - un túnel o un salto por pivot (SSH con -L, o socat), o
+    - añadir a fw una ruta estática hacia 10.10.10.0/24 vía 10.10.20.50 y una regla de reenvío.
+
+  Eso es exactamente el movimiento lateral: no basta con tener conectividad, hay que construirla.

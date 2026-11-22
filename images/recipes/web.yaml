@@ -1,0 +1,11 @@
+name: web
+base: debian13
+version: "1"
+description: Servidor web PHP con una página de ejemplo
+size: 4GB
+packages: [apache2, php, libapache2-mod-php, curl]
+assets:
+  - { src: assets/web, dst: /var/www/html }
+startup: |
+  a2enmod php8.4 >/dev/null 2>&1 || true
+  systemctl enable --now apache2

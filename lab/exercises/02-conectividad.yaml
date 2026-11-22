@@ -1,0 +1,61 @@
+id: 02-conectividad
+title: La matriz de conectividad del cortafuegos
+lab: ../examples/example.net.yaml
+profile: std
+initial: initial
+difficulty: fácil
+duration: 25 min
+
+brief: |
+  Comprueba qué flujos permite el cortafuegos entre las tres redes y explica cada resultado.
+
+  Hay seis combinaciones entre ext, dmz e int. Tres están permitidas y tres no. El objetivo es
+  deducir la política a partir de lo que funciona y lo que no.
+
+tasks:
+  - Comprueba desde inta si llega a exta y si llega a dmza.
+  - Comprueba desde exta si llega a inta y a dmza.
+  - Comprueba desde dmza si llega a exta y a inta.
+  - Dibuja la matriz completa y deduce las reglas.
+
+hints:
+  - El cortafuegos no filtra el tráfico que va o viene de base: está conectado a las tres redes.
+  - Si un ping no responde, puede ser que el cortafuegos lo descarte o que el destino no tenga ruta
+    de vuelta. Aquí es lo primero.
+
+checks:
+  - assert: reachable inta -> exta is true
+    message: La red interna debería poder salir a la externa.
+
+  - assert: reachable inta -> dmza is false
+    message: La red interna no debería llegar a la DMZ.
+
+  - assert: reachable exta -> inta is false
+    message: Desde el exterior no se debería entrar en la red interna.
+
+  - assert: reachable dmza -> exta is true
+    message: La DMZ debería poder salir a la externa.
+
+  - assert: reachable dmza -> inta is false
+    message: La DMZ no debería llegar a la red interna.
+
+  - assert: reachable exta -> dmza is false
+    message: >
+      El ping a la DMZ debería fallar aunque el 80 esté abierto: el cortafuegos solo acepta TCP/80.
+
+  - assert: answer "¿Qué tres flujos permite el cortafuegos?" contains "int"
+    message: Escribe la matriz y compárala con las reglas de fw.
+
+solution: |
+  La matriz que sale es:
+
+    origen  destino  resultado
+    int     ext      permitido
+    int     dmz      bloqueado
+    ext     int      bloqueado
+    ext     dmz      solo TCP/80 hacia www
+    dmz     ext      permitido
+    dmz     int      bloqueado
+
+  Es el patrón clásico: la red interna puede salir, la DMZ puede salir a Internet pero no entrar en
+  la interna, y desde fuera solo se publica lo estrictamente necesario.

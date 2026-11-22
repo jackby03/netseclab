@@ -1,0 +1,21 @@
+# Sets de herramientas, pequeños y con un propósito.
+#
+# La idea es que un ejercicio declare solo lo que necesita. Un Kali completo enseña menos: con 600
+# binarios el alumno no aprende a elegir la herramienta.
+toolsets:
+  recon:
+    packages: [nmap, masscan, dnsutils, whatweb, whois, curl]
+  webfuzz:
+    packages: [ffuf, gobuster, nikto, dirb, curl, jq]
+  sniff:
+    packages: [tcpdump, tshark, bettercap, mitmproxy, tcpflow]
+  crack:
+    packages: [hydra, john, medusa]
+  tls:
+    packages: [openssl, sslscan, certbot]
+  blue:
+    packages: [auditd, aide, fail2ban, lynis, rkhunter]
+  traffic:
+    packages: [hping3, scapy, iperf3, tcpreplay, dsniff]
+  webapp:
+    packages: [sqlmap, wfuzz, whatweb, curl]

@@ -1,0 +1,61 @@
+id: 05-endurecimiento
+title: Cerrar la superficie de un servidor expuesto
+lab: ../examples/example.net.yaml
+profile: std
+initial: initial
+difficulty: media
+duration: 30 min
+
+brief: |
+  `www` está en la DMZ y solo debería ofrecer HTTP. Sin embargo, desde la propia red perimetral
+  se llega a su SSH, y desde `base` también.
+
+  Endurécelo: deja el 80 accesible para todos, pero que el 22 no responda desde la DMZ.
+
+tasks:
+  - Comprueba desde base qué puertos responde www.
+  - Añade un cortafuegos en www que permita el 80 y descarte el 22 desde la DMZ.
+  - Comprueba que el 80 sigue funcionando desde exta.
+  - Explica por qué esto no basta como única medida de seguridad.
+
+hints:
+  - "Entra con `lab console www` y dentro usa `nft` o `iptables`."
+  - >
+    El cortafuegos de `fw` y el de `www` son independientes: el primero filtra lo que cruza,
+    el segundo lo que llega.
+  - Descartar (`drop`) hace que el puerto aparezca «filtered»; rechazar (`reject`) lo deja «closed».
+
+checks:
+  - assert: port-state base -> www:22 is filtered
+    message: >
+      Desde base sigues llegando al SSH de www. Añade una regla en www que descarte el 22 en la
+      interfaz de la DMZ.
+
+  - assert: port-state exta -> www:80 is open
+    message: El 80 tiene que seguir funcionando desde el exterior.
+
+  - assert: answer "¿Por qué filtrar en el servidor no sustituye a filtrar en el cortafuegos?" contains "defensa en profundidad"
+    message: >
+      Piensa qué pasa si alguien llega desde otra red, o si el cortafuegos de fw se configura mal.
+
+solution: |
+  En www, como root:
+
+    nft add table inet hardening
+    nft 'add chain inet hardening input { type filter hook input priority 0; policy accept; }'
+    nft add rule inet hardening input tcp dport 22 drop
+
+  O, con iptables:
+
+    iptables -I INPUT -p tcp --dport 22 -j DROP
+
+  El 80 sigue abierto porque la política es `accept` y solo se descarta el 22.
+
+  Por qué no basta:
+    - Si mañana se abre otro servicio, vuelve a estar expuesto.
+    - El cortafuegos de `fw` es el que decide qué entra desde el exterior; el del servidor decide
+      qué acepta, y son dos capas distintas.
+    - Y si el servicio no debe existir, lo correcto es no instalarlo (`apt remove openssh-server`),
+      no solo filtrarlo: cerrar el puerto no cierra el proceso.
+
+  Eso es defensa en profundidad: cada capa debe bastar por sí sola.

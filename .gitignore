@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+.pytest_cache/
+.pytest-tmp/
+pytest-cache-files-*/
+research/
+answers/
+capture/
+*.qcow2
+*.vmdk
+*.ova
