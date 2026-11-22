@@ -36,6 +36,7 @@ comprobar_entorno() {
   need qemu-system-x86_64
   need qemu-img
   need ssh
+  need scp
   need curl
   need python3
   need tar
@@ -74,15 +75,29 @@ p.write_text(p.read_text().replace("__PUBKEY__", clave), encoding="utf-8")
 PY
 }
 
+aceleracion() {
+  # Con /dev/kvm utilizable la construcción vuela; sin él QEMU emula y tarda mucho más.
+  if [ -w /dev/kvm ] && qemu-system-x86_64 -accel help 2>/dev/null | grep -qw kvm; then
+    echo "-accel kvm -cpu host"
+  else
+    echo "-accel tcg -cpu max"
+  fi
+}
+
 arrancar() {
   [ -f "$WORK/qemu.pid" ] && kill "$(cat "$WORK/qemu.pid")" 2>/dev/null || true
   log "sirviendo la semilla en 127.0.0.1:$PUERTO_HTTP"
   ( cd "$WORK/seed" && python3 -m http.server "$PUERTO_HTTP" --bind 127.0.0.1 >/dev/null 2>&1 ) &
   echo $! > "$WORK/http.pid"
 
-  log "arrancando la VM"
+  local accel; accel="$(aceleracion)"
+  if [ "$accel" = "-accel tcg -cpu max" ]; then
+    log "AVISO: sin /dev/kvm, QEMU emulará la CPU y la construcción tardará bastante más"
+  fi
+  log "arrancando la VM ($accel)"
+  # $accel se expande a propósito sin comillas: son dos argumentos
   qemu-system-x86_64 \
-    -machine q35 -cpu max -smp 2 -m 2048 \
+    $accel -machine q35 -smp 2 -m 2048 \
     -drive file="$DISCO",if=virtio,format=qcow2 \
     -netdev user,id=n0,hostfwd=tcp:127.0.0.1:"$PUERTO_SSH"-:22 \
     -device virtio-net-pci,netdev=n0 \
@@ -92,8 +107,9 @@ arrancar() {
 }
 
 esperar_ssh() {
-  log "esperando a que la VM acepte SSH (hasta 4 minutos)"
-  for _ in $(seq 1 120); do
+  local segundos="${TIMEOUT_SSH:-600}"
+  log "esperando a que la VM acepte SSH (hasta $((segundos / 60)) minutos)"
+  for _ in $(seq 1 $((segundos / 2))); do
     if ssh "${SSH_OPTS[@]}" lab@127.0.0.1 true 2>/dev/null; then
       return 0
     fi
