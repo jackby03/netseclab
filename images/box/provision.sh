@@ -213,6 +213,23 @@ systemctl enable lab-mgmt-net.service
 # la configuración de cloud-init apuntaba a la interfaz del build: no molesta, pero sobra
 rm -f /etc/network/interfaces.d/50-cloud-init /etc/network/interfaces.d/50-cloud-init.cfg
 
+echo "== consola limpia"
+# El TTY de la caja es para el administrador, no para el log del kernel: cuando
+# Incus crea bridges y dnsmasq, el kernel inunda la consola y no se lee nada.
+cat > /etc/sysctl.d/90-consola.conf <<'SYSCTL'
+# Solo emergencias y alertas en la consola; el resto va a dmesg.
+kernel.printk = 3 4 1 7
+SYSCTL
+sysctl --system >/dev/null 2>&1 || true
+
+if [ -f /etc/default/grub ]; then
+  if ! grep -q 'GRUB_CMDLINE_LINUX_DEFAULT=".*quiet' /etc/default/grub; then
+    sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 quiet"/' \
+      /etc/default/grub
+    update-grub >/dev/null 2>&1 || true
+  fi
+fi
+
 echo "== limpieza para distribuir"
 # NO se hace `apt-get clean`: la caché de .deb es lo que permite instalar las
 # herramientas de cada ejercicio sin Internet. Solo se limpian las listas.

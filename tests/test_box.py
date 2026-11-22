@@ -181,6 +181,13 @@ def test_la_semilla_no_lucha_por_apt_con_el_provisionamiento():
     assert "reintentando" in provision
 
 
+def test_la_consola_no_se_llena_de_mensajes_del_kernel():
+    """Con el loglevel por defecto, crear los bridges inunda el TTY."""
+    provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
+    assert "kernel.printk" in provision
+    assert "quiet" in provision
+
+
 def test_la_caja_configura_su_propia_red():
     """Sin cloud-init nadie pide IP al arrancar en VMware."""
     provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
