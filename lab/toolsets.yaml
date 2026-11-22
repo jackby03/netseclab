@@ -6,7 +6,7 @@ toolsets:
   recon:
     packages: [nmap, masscan, dnsutils, whatweb, whois, curl]
   webfuzz:
-    packages: [ffuf, gobuster, nikto, dirb, curl, jq]
+    packages: [ffuf, gobuster, dirb, curl, jq]
   sniff:
     packages: [tcpdump, tshark, bettercap, mitmproxy, tcpflow]
   crack:

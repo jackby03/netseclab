@@ -86,13 +86,29 @@ imagen_existe() {
   incus image info "$1" >/dev/null 2>&1
 }
 
+# Un paquete que no exista en los repositorios no puede tumbar la construcción:
+# se instala lo que haya y se avisa de lo que falte.
+instalar() {
+  local inst="$1" paquetes="$2"
+  if incus exec "$inst" -- sh -c \
+      "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $paquetes"; then
+    return 0
+  fi
+  echo "  aviso: algún paquete no está disponible; se instala uno a uno"
+  for p in $paquetes; do
+    incus exec "$inst" -- sh -c \
+      "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $p" \
+      || echo "  aviso: paquete no disponible en esta Debian: $p"
+  done
+}
+
 construir_imagen() {
   local nombre="$1" base="$2" paquetes="$3" extra="${4:-}"
   # Los restos de un intento anterior estorban: se borran antes de empezar.
   incus delete "proto-$nombre" --force >/dev/null 2>&1 || true
   incus launch "$base" "proto-$nombre"
-  incus exec "proto-$nombre" -- sh -c \
-    "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $paquetes"
+  incus exec "proto-$nombre" -- sh -c 'apt-get update -qq' || true
+  instalar "proto-$nombre" "$paquetes"
   if [ -n "$extra" ]; then
     incus exec "proto-$nombre" -- sh -c "$extra"
   fi
@@ -119,8 +135,9 @@ if ! imagen_existe "lab-ids-v1"; then
 fi
 
 if ! imagen_existe "lab-attacker-v1"; then
+  # nikto no está en los repositorios de Debian 13
   construir_imagen attacker lab-node-v1 \
-    "masscan whatweb ffuf gobuster nikto dirb tshark tcpflow"
+    "masscan whatweb ffuf gobuster dirb tshark tcpflow"
 fi
 
 echo "== paquetes de los toolsets, para poder instalarlos sin Internet"
