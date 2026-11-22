@@ -18,8 +18,13 @@ WORK="${WORK:-$RAIZ/build/box}"
 
 # Versión de Debian fijada: no se usa "latest" para que el build sea reproducible.
 DEBIAN_BUILD="${DEBIAN_BUILD:-20261116-2664}"
-BASE_IMG="debian-13-genericcloud-amd64.qcow2"
 BASE_URL="https://cloud.debian.org/images/cloud/trixie/${DEBIAN_BUILD}"
+if [ "$DEBIAN_BUILD" = "latest" ]; then
+  BASE_IMG="debian-13-genericcloud-amd64.qcow2"
+else
+  # En los directorios de un build concreto el nombre incluye el identificador.
+  BASE_IMG="debian-13-genericcloud-amd64-${DEBIAN_BUILD}.qcow2"
+fi
 DISCO="$WORK/netseclab.qcow2"
 PUERTO_HTTP="${PUERTO_HTTP:-8765}"
 PUERTO_SSH="${PUERTO_SSH:-2222}"
@@ -45,13 +50,18 @@ comprobar_entorno() {
 }
 
 descargar_base() {
-  if [ -f "$WORK/$BASE_IMG" ]; then
+  # una descarga fallida deja un fichero vacío: no vale como "ya descargada"
+  if [ -f "$WORK/$BASE_IMG" ] && [ "$(stat -c%s "$WORK/$BASE_IMG")" -gt 100000000 ]; then
     log "imagen base ya descargada"
     return
   fi
   log "descargando $BASE_IMG ($DEBIAN_BUILD)"
-  curl -fL --progress-bar -o "$WORK/$BASE_IMG" "$BASE_URL/$BASE_IMG"
-  curl -fsSL -o "$WORK/SHA512SUMS" "$BASE_URL/SHA512SUMS"
+  curl -fL --progress-bar -o "$WORK/$BASE_IMG" "$BASE_URL/$BASE_IMG" || fail \
+    "no se pudo descargar $BASE_URL/$BASE_IMG
+  Comprueba qué builds existen en https://cloud.debian.org/images/cloud/trixie/
+  y pásalo con DEBIAN_BUILD=<build> (o DEBIAN_BUILD=latest)."
+  curl -fsSL -o "$WORK/SHA512SUMS" "$BASE_URL/SHA512SUMS" \
+    || fail "no se pudo descargar el SHA512SUMS de $BASE_URL"
   ( cd "$WORK" && grep " $BASE_IMG\$" SHA512SUMS | sha512sum -c - ) \
     || fail "la imagen base no coincide con su checksum"
 }
