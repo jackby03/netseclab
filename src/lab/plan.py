@@ -458,6 +458,16 @@ def build(
 
     # ── activación
     for node in nodes:
+        # Se acaban de copiar unidades nuevas: sin recargar, systemd no las ve y
+        # `systemctl enable` falla con "Unit ... does not exist".
+        steps.append(
+            Step(
+                "enable",
+                node=node.name,
+                argv=["systemctl", "daemon-reload"],
+                note=f"{node.name}: recargar systemd",
+            )
+        )
         unidades = ["lab-net.service"]
         if node.startup.strip():
             unidades.append("lab-startup.service")

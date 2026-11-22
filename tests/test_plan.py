@@ -35,6 +35,14 @@ def test_fases_en_orden(plan):
     assert fases == ["perfil", "network", "node", "packages", "files", "enable", "post"]
 
 
+def test_se_recarga_systemd_antes_de_activar(plan):
+    """Sin daemon-reload, systemd no ve las unidades recién copiadas."""
+    comandos = _comandos(plan)
+    indice_reload = next(i for i, c in enumerate(comandos) if "systemctl daemon-reload" in c)
+    indice_enable = next(i for i, c in enumerate(comandos) if "systemctl enable" in c)
+    assert indice_reload < indice_enable
+
+
 def test_se_crean_las_tres_redes(plan):
     comandos = _comandos(plan)
     assert any("incus network create nvm-ext" in c for c in comandos)
