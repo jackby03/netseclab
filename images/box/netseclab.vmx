@@ -7,14 +7,30 @@ memsize = "2048"
 numvcpus = "2"
 cpuid.coresPerSocket = "2"
 
-# SATA para el disco: compatible con el kernel cloud de Debian.
-# vmxnet3 (paravirtualizado) es el que trae ese kernel para VMware; las emuladas
-# como e1000 no están y la VM se queda sin interfaz de red.
+# Puentes PCIe: sin ellos VMware no encuentra ranura para una tarjeta PCIe como
+# vmxnet3, y al añadirla desde la interfaz acaba poniendo e1000, que el kernel
+# cloud de Debian no trae. Estos son los que VMware escribe por su cuenta.
+pciBridge0.present = "TRUE"
+pciBridge4.present = "TRUE"
+pciBridge4.virtualDev = "pcieRootPort"
+pciBridge4.functions = "8"
+pciBridge5.present = "TRUE"
+pciBridge5.virtualDev = "pcieRootPort"
+pciBridge5.functions = "8"
+pciBridge6.present = "TRUE"
+pciBridge6.virtualDev = "pcieRootPort"
+pciBridge6.functions = "8"
+pciBridge7.present = "TRUE"
+pciBridge7.virtualDev = "pcieRootPort"
+pciBridge7.functions = "8"
+
+# Disco por SATA: compatible con el kernel cloud de Debian.
 sata0.present = "TRUE"
 sata0:0.present = "TRUE"
 sata0:0.fileName = "netseclab.vmdk"
 sata0:0.deviceType = "disk"
 
+# Tarjeta paravirtualizada de VMware: es la que trae ese kernel.
 ethernet0.present = "TRUE"
 ethernet0.connectionType = "nat"
 ethernet0.virtualDev = "vmxnet3"
