@@ -30,8 +30,12 @@ PUERTO_HTTP="${PUERTO_HTTP:-8765}"
 PUERTO_SSH="${PUERTO_SSH:-2222}"
 CLAVE="$WORK/id_ed25519"
 
+# Opciones comunes. El puerto se pasa aparte porque ssh usa -p y scp usa -P.
 SSH_OPTS=(-i "$CLAVE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
-          -o LogLevel=ERROR -p "$PUERTO_SSH")
+          -o LogLevel=ERROR)
+
+ssh_vm()  { ssh "${SSH_OPTS[@]}" -p "$PUERTO_SSH" "$@"; }
+scp_vm()  { scp "${SSH_OPTS[@]}" -P "$PUERTO_SSH" "$@"; }
 
 log()  { printf '\033[1;34m==\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -120,7 +124,7 @@ esperar_ssh() {
   local segundos="${TIMEOUT_SSH:-600}"
   log "esperando a que la VM acepte SSH (hasta $((segundos / 60)) minutos)"
   for _ in $(seq 1 $((segundos / 2))); do
-    if ssh "${SSH_OPTS[@]}" lab@127.0.0.1 true 2>/dev/null; then
+    if ssh_vm lab@127.0.0.1 true 2>/dev/null; then
       return 0
     fi
     sleep 2
@@ -133,13 +137,13 @@ provisionar() {
   tar -C "$RAIZ" -czf "$WORK/netseclab-src.tar.gz" \
       --exclude=build --exclude=.git --exclude=__pycache__ --exclude=research \
       pyproject.toml src lab docs README.md
-  scp -q "${SSH_OPTS[@]}" "$WORK/netseclab-src.tar.gz" lab@127.0.0.1:/tmp/
-  ssh "${SSH_OPTS[@]}" lab@127.0.0.1 'sudo bash -s' < "$AQUI/provision.sh"
+  scp_vm -q "$WORK/netseclab-src.tar.gz" lab@127.0.0.1:/tmp/
+  ssh_vm lab@127.0.0.1 'sudo bash -s' < "$AQUI/provision.sh"
 }
 
 apagar() {
   log "apagando la caja"
-  ssh "${SSH_OPTS[@]}" lab@127.0.0.1 'sudo poweroff' 2>/dev/null || true
+  ssh_vm lab@127.0.0.1 'sudo poweroff' 2>/dev/null || true
   for _ in $(seq 1 60); do
     [ -f "$WORK/qemu.pid" ] || break
     kill -0 "$(cat "$WORK/qemu.pid")" 2>/dev/null || break

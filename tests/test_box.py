@@ -111,3 +111,18 @@ def test_el_build_fija_la_version_de_debian():
     assert "DEBIAN_BUILD:-2026" in build
     assert "latest" not in build.split("comprobar_entorno")[0] or "no se usa" in build
     assert "sha512sum -c -" in build
+
+
+def test_el_nombre_de_la_imagen_lleva_el_build():
+    build = (CAJA / "build.sh").read_text(encoding="utf-8")
+    assert 'if [ "$DEBIAN_BUILD" = "latest" ]' in build
+    assert 'debian-13-genericcloud-amd64-${DEBIAN_BUILD}.qcow2' in build
+
+
+def test_ssh_y_scp_usan_la_opcion_de_puerto_correcta():
+    """ssh usa -p y scp usa -P; confundirlas hace que scp intente copiar el número."""
+    build = (CAJA / "build.sh").read_text(encoding="utf-8")
+    assert 'ssh "${SSH_OPTS[@]}" -p "$PUERTO_SSH"' in build
+    assert 'scp "${SSH_OPTS[@]}" -P "$PUERTO_SSH"' in build
+    # y el puerto no va dentro del array común
+    assert "-p \"$PUERTO_SSH\")\n" not in build
