@@ -10,6 +10,9 @@ import pytest
 import lab.cli as cli
 from lab.engine import RecordingRunner
 
+SNAPS_INITIAL = json.dumps([{"name": "initial"}])
+SNAPS_OTRO = json.dumps([{"name": "otro"}])
+
 EJEMPLOS = Path(__file__).resolve().parents[1] / "lab" / "examples"
 EJERCICIO = Path(__file__).resolve().parents[1] / "lab" / "exercises" / "06-fuzz-evasion.yaml"
 
@@ -125,7 +128,7 @@ def test_reset_sin_snapshot_avisa(monkeypatch, capsys):
 
 
 def test_reset_restaura(monkeypatch, capsys):
-    runner = RecordingRunner({"snapshot list": (0, "initial\n", "")})
+    runner = RecordingRunner({"incus query": (0, SNAPS_INITIAL, "")})
     monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     assert cli.main(["reset", str(EJEMPLOS / "fuzz-evasion.yaml")]) == 0

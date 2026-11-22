@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -68,8 +69,12 @@ def test_keep_going_continua_tras_el_fallo(plan):
     assert outcome.ejecutados > 5
 
 
+def _snaps(*nombres: str) -> str:
+    return json.dumps([{"name": n} for n in nombres])
+
+
 def test_snapshot_inicial(example_net):
-    runner = RecordingRunner({"snapshot list": (1, "", "no existe")})
+    runner = RecordingRunner({"incus query": (1, "", "no existe")})
     incus = Incus(runner)
     fallos = take_snapshot(incus, ["fw", "dmza"], "initial")
     assert fallos == []
@@ -78,20 +83,28 @@ def test_snapshot_inicial(example_net):
 
 
 def test_no_repite_un_snapshot_que_ya_existe():
-    runner = RecordingRunner({"snapshot list": (0, "initial\n", "")})
+    runner = RecordingRunner({"incus query": (0, _snaps("initial"), "")})
     incus = Incus(runner)
     take_snapshot(incus, ["fw"], "initial")
     assert not runner.contiene("snapshot create")
 
 
 def test_restore_avisa_si_falta_el_snapshot():
-    runner = RecordingRunner({"snapshot list": (0, "otro\n", "")})
+    runner = RecordingRunner({"incus query": (0, _snaps("otro"), "")})
     fallos = restore_snapshot(Incus(runner), ["fw"], "initial")
     assert len(fallos) == 1
     assert "no existe el snapshot" in fallos[0]
     # si no existe, no se intenta restaurar
     assert not runner.contiene("snapshot restore")
-    assert runner.contiene("snapshot list fw")
+    assert runner.contiene("incus query")
+
+
+def test_los_snapshots_pueden_venir_como_urls():
+    """La API devuelve a veces rutas, no objetos con nombre."""
+    runner = RecordingRunner(
+        {"incus query": (0, json.dumps(["/1.0/instances/fw/snapshots/initial"]), "")}
+    )
+    assert Incus(runner).snapshots("fw") == ["initial"]
 
 
 def test_captura_en_red_espejo(example_net):
@@ -99,7 +112,8 @@ def test_captura_en_red_espejo(example_net):
     plan = plan_capture(example_net, red, 5, Path("capture/dmz.pcap"))
     assert plan.modo == "mirror"
     assert "cap-dmz" in plan.comandos[0]
-    assert plan.comandos[0][:2] == ["timeout", "5"]
+    # el puerto espejo vive en el anfitrión: hace falta root
+    assert plan.comandos[0][:3] == ["sudo", "timeout", "5"]
 
 
 def test_captura_en_red_hub_desde_un_nodo(example_net):

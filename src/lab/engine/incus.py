@@ -84,17 +84,28 @@ class Incus:
         ]
 
     def snapshots(self, nodo: str) -> list[str]:
-        res = self._run("snapshot", "list", nodo, "--format", "csv", "-c", "name")
-        if res.ok:
-            return [linea.strip() for linea in res.out.splitlines() if linea.strip()]
-        res = self._run("snapshot", "list", nodo)
+        """Nombres de los snapshots de una instancia.
+
+        Se usa la API (`incus query`), que es estable. El listado por columnas
+        (`snapshot list -c name`) no acepta nombres de columna y devuelve vacío
+        sin error, que es peor que fallar. La API puede devolver las snapshots
+        como objetos o como URLs (`/1.0/instances/<n>/snapshots/<nombre>`).
+        """
+        res = self._run("query", f"/1.0/instances/{nodo}/snapshots")
         if not res.ok:
             return []
-        nombres = []
-        for linea in res.out.splitlines()[1:]:
-            partes = linea.split()
-            if partes:
-                nombres.append(partes[0])
+        try:
+            datos = json.loads(res.out or "[]")
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(datos, list):
+            return []
+        nombres: list[str] = []
+        for elemento in datos:
+            if isinstance(elemento, dict) and elemento.get("name"):
+                nombres.append(str(elemento["name"]))
+            elif isinstance(elemento, str) and elemento.strip():
+                nombres.append(elemento.rstrip("/").rsplit("/", 1)[-1])
         return nombres
 
     def tiene_snapshot(self, nodo: str, nombre: str) -> bool:

@@ -44,12 +44,14 @@ def plan_capture(
 ) -> CapturePlan:
     if red.mode == "mirror":
         puerto = f"cap-{red.name}"
+        # El puerto espejo vive en el anfitrión: capturar necesita root.
         return CapturePlan(
             red=red.name,
             modo="mirror",
             comandos=[
-                ["timeout", str(segundos), "tcpdump", "-i", puerto, "-w", DESTINO_LOCAL],
-                ["cp", DESTINO_LOCAL, str(salida)],
+                ["sudo", "timeout", str(segundos), "tcpdump", "-i", puerto, "-w", DESTINO_LOCAL],
+                ["sudo", "cp", DESTINO_LOCAL, str(salida)],
+                ["sudo", "rm", "-f", DESTINO_LOCAL],
             ],
             salida=salida,
             nota=f"capturando en el puerto espejo {puerto} durante {segundos}s",

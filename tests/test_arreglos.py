@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 
 import pytest
+
+SNAPS_INITIAL = json.dumps([{"name": "initial"}])
+SNAPS_OTRO = json.dumps([{"name": "otro"}])
 
 from lab.engine import Incus, RecordingRunner, restore_snapshot
 from lab.errors import LabErrors
@@ -20,7 +24,7 @@ EJEMPLOS = Path(__file__).resolve().parents[1] / "lab" / "examples"
 
 
 def test_reset_para_restaura_y_arranca():
-    runner = RecordingRunner({"snapshot list": (0, "initial\n", "")})
+    runner = RecordingRunner({"incus query": (0, SNAPS_INITIAL, "")})
     fallos = restore_snapshot(Incus(runner), ["fw"], "initial")
     assert fallos == []
     secuencia = [c for c in runner.comandos() if "stop" in c or "restore" in c or "start" in c]
@@ -31,7 +35,7 @@ def test_reset_para_restaura_y_arranca():
 
 
 def test_reset_no_arranca_si_se_pide():
-    runner = RecordingRunner({"snapshot list": (0, "initial\n", "")})
+    runner = RecordingRunner({"incus query": (0, SNAPS_INITIAL, "")})
     restore_snapshot(Incus(runner), ["fw"], "initial", arrancar=False)
     assert not runner.contiene("incus start fw")
 

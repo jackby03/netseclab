@@ -14,6 +14,9 @@ from lab.generate import netconf
 from lab.model import load
 from lab.plan import build
 
+SNAPS_INITIAL = json.dumps([{"name": "initial"}])
+SNAPS_OTRO = json.dumps([{"name": "otro"}])
+
 EJEMPLOS = Path(__file__).resolve().parents[1] / "lab" / "examples"
 
 
@@ -86,7 +89,7 @@ def test_snapshot_informa_si_falla(monkeypatch, capsys):
 
 
 def test_reset_para_restaura_y_arranca(monkeypatch, capsys):
-    runner = RecordingRunner({"snapshot list": (0, "initial\n", "")})
+    runner = RecordingRunner({"incus query": (0, SNAPS_INITIAL, "")})
     monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     assert cli.main(["reset", str(EJEMPLOS / "example.net.yaml"), "--profile", "mini"]) == 0
