@@ -15,6 +15,21 @@ def test_hay_gitattributes_para_no_romper_los_scripts():
     assert "*.py text eol=lf" in texto
 
 
+def test_ningun_fichero_de_texto_tiene_finales_de_linea_windows():
+    """Un CRLF en un .sh deja el shebang y `set -o pipefail` inservibles en Linux."""
+    extensiones = {".py", ".yaml", ".yml", ".sh", ".md", ".toml", ".vmx", ".nft", ".rules"}
+    culpables = []
+    for carpeta in ("src", "lab", "images", "tests", "docs", ".github"):
+        base = RAIZ / carpeta
+        if not base.exists():
+            continue
+        for ruta in base.rglob("*"):
+            if ruta.is_file() and ruta.suffix in extensiones:
+                if b"\r\n" in ruta.read_bytes():
+                    culpables.append(str(ruta.relative_to(RAIZ)))
+    assert culpables == [], f"ficheros con CRLF: {culpables}"
+
+
 def test_gitignore_no_deja_entrar_artefactos():
     texto = (RAIZ / ".gitignore").read_text(encoding="utf-8")
     for patron in ("build/", "*.qcow2", "answers/", "capture/", "__pycache__/"):
