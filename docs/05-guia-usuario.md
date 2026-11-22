@@ -63,8 +63,12 @@ nmap www.example.net
 Deberían salir el 80 abierto, el 443 cerrado y el resto filtrado. Si sale otra cosa, el
 cortafuegos no está como toca: `incus exec fw -- nft list ruleset`.
 
-> Para volver de una consola: `Ctrl-a` y luego `q` si estás en `lab console`; si estás en la consola
-> de VMware, `Ctrl-a q` también. La forma más cómoda es abrir las consolas en el navegador (§5).
+> Para volver de una consola: `Ctrl-a`, sueltas, y luego `q`. Es la secuencia de `incus console`;
+> `Ctrl-C` solo interrumpe el login y vuelve a pedirlo. Si el nodo no está arrancado, `lab console`
+> muestra su log en vez de una consola que no puede funcionar.
+
+**Credenciales de los nodos:** `root` / `netseclab` y `user1` / `netseclab` (`user1` con `sudo`, como
+en el NETinVM original). El SSH de los nodos acepta contraseña; la caja, en cambio, solo acepta clave.
 
 ---
 
