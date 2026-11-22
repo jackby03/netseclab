@@ -47,7 +47,8 @@ apt_update
 apt_install \
   incus openvswitch-switch bridge-utils \
   tcpdump curl jq ca-certificates \
-  python3 python3-yaml openssh-server
+  python3 python3-yaml openssh-server \
+  open-vm-tools
 
 echo "== incus"
 systemctl enable --now incus.socket incus.service
