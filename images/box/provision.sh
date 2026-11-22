@@ -138,13 +138,15 @@ construir_imagen() {
 if ! imagen_existe "lab-node-v1"; then
   # dnsmasq lo necesita cualquier nodo que sirva DHCP o DNS en un escenario.
   # Las credenciales son las mismas que en la caja: root y user1, con netseclab.
+  # Y el prompt de login recuerda cómo salir de la consola, que no es evidente.
   construir_imagen node images:debian/13 \
     "openssh-server iproute2 nftables curl jq tcpdump nmap rsyslog isc-dhcp-client dnsmasq" \
     'echo "root:netseclab" | chpasswd; \
      id user1 >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo user1; \
      echo "user1:netseclab" | chpasswd; \
      sed -i "s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/" /etc/ssh/sshd_config; \
-     systemctl enable ssh'
+     systemctl enable ssh; \
+     echo "netseclab node - to leave the console: Ctrl-a then q" >> /etc/issue'
 fi
 
 if ! imagen_existe "lab-web-v1"; then
@@ -228,6 +230,11 @@ cat > /etc/sysctl.d/90-consola.conf <<'SYSCTL'
 kernel.printk = 3 4 1 7
 SYSCTL
 sysctl --system >/dev/null 2>&1 || true
+
+# El prompt de login recuerda lo que no es evidente: cómo entrar y qué hacer.
+if ! grep -q "netseclab box" /etc/issue 2>/dev/null; then
+  echo "netseclab box - log in as lab / netseclab, then: lab --help" >> /etc/issue
+fi
 
 if [ -f /etc/default/grub ]; then
   if ! grep -q 'GRUB_CMDLINE_LINUX_DEFAULT=".*quiet' /etc/default/grub; then
