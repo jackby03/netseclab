@@ -623,10 +623,16 @@ def cmd_push(args) -> int:
         return 3
     carpeta = carpeta_temporal()
     try:
-        fichero = carpeta / "imagen.tar.gz"
-        Incus(_runner()).exportar_imagen(args.alias, str(fichero))
+        # Incus decide el nombre final: `incus image export <alias> <ruta>` escribe `<ruta>.tar.gz`,
+        # así que se exporta a una carpeta vacía y se coge lo que haya. Dar por hecho el nombre
+        # dejaba el fichero sin encontrar y el comando fallaba siempre.
+        Incus(_runner()).exportar_imagen(args.alias, str(carpeta / "imagen"))
+        exportados = [p for p in sorted(carpeta.iterdir()) if p.is_file() and p.stat().st_size]
+        if not exportados:
+            print(f"error: incus produced no file when exporting {args.alias!r}", file=sys.stderr)
+            return 1
         cache = FileCache(args.to)
-        entrada = cache.add(args.alias, fichero)
+        entrada = cache.add(args.alias, exportados[0])
     except (CacheError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

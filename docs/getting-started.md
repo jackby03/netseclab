@@ -81,11 +81,11 @@ lab status
 
 ```
 name         state        type       ipv4
-base         RUNNING      container  10.5.0.1, 10.5.1.1, 10.5.2.1
-fw           RUNNING      container  10.5.0.254, 10.5.1.254, 10.5.2.254
-exta         RUNNING      container  10.5.0.10
-dmza         RUNNING      container  10.5.1.10
-inta         RUNNING      container  10.5.2.10
+base         Running      container  10.5.0.1, 10.5.1.1, 10.5.2.1
+fw           Running      container  10.5.0.254, 10.5.1.254, 10.5.2.254
+exta         Running      container  10.5.0.10
+dmza         Running      container  10.5.1.10
+inta         Running      container  10.5.2.10
 ```
 
 ```bash

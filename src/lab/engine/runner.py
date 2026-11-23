@@ -30,15 +30,28 @@ class SubprocessRunner:
     """Ejecuta de verdad. Es lo que se usa dentro de la caja."""
 
     def run(self, argv: Sequence[str], stdin: str | None = None) -> Result:
+        # Sin `stdin`, el comando no hereda la entrada del proceso: `incus profile create` lee su
+        # YAML de la entrada estándar cuando no es un terminal, así que un `lab up` lanzado desde un
+        # script por stdin se comía el resto del script como si fuera un perfil.
         try:
-            proc = subprocess.run(
-                list(argv),
-                input=stdin,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=600,
-            )
+            if stdin is None:
+                proc = subprocess.run(
+                    list(argv),
+                    stdin=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=600,
+                )
+            else:
+                proc = subprocess.run(
+                    list(argv),
+                    input=stdin,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=600,
+                )
         except FileNotFoundError as exc:
             return Result(127, "", str(exc))
         except subprocess.TimeoutExpired:

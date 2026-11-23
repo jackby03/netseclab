@@ -138,3 +138,17 @@ def test_captura_falla_si_tcpdump_no_existe(example_net):
     ok, detalle = run_capture(plan, runner)
     assert not ok
     assert "not found" in detalle
+
+
+def test_el_ejecutor_no_hereda_la_entrada_estandar():
+    """`incus profile create` lee su YAML de stdin si no es un terminal: un `lab up` lanzado
+    desde un script por stdin se comía el resto del script como si fuera un perfil."""
+    import sys
+
+    from lab.engine.runner import SubprocessRunner
+
+    salida = SubprocessRunner().run(
+        [sys.executable, "-c", "import sys; print(len(sys.stdin.read()))"]
+    )
+    assert salida.ok
+    assert salida.out.strip() == "0"
