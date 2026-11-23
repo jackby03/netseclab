@@ -44,11 +44,14 @@ apt_install() {
 
 echo "== paquetes base"
 apt_update
+# incus-base es el demonio de Incus solo para contenedores: no arrastra QEMU,
+# swtpm ni virtiofsd, que son para máquinas virtuales y aquí no se usan. Eso son
+# cientos de megas menos de descarga y de imagen.
 apt_install \
-  incus openvswitch-switch bridge-utils \
+  incus-base openvswitch-switch bridge-utils \
   tcpdump curl jq ca-certificates \
   python3 python3-yaml openssh-server \
-  open-vm-tools
+  open-vm-tools btrfs-progs
 
 echo "== incus"
 systemctl enable --now incus.socket incus.service
@@ -90,7 +93,9 @@ echo "== almacenamiento copy-on-write"
 # siete nodos de ~1,2 GB llenan un disco de 12 GB. Con btrfs sobre un fichero
 # los nodos comparten bloques con la imagen y ocupan decenas de megas.
 if apt-get install -y -qq btrfs-progs >/dev/null 2>&1; then
-  if incus storage create labpool btrfs source=/var/lib/incus/labpool.img size=8GiB >/dev/null 2>&1; then
+  # Con `size` y sin `source`, Incus crea él mismo el fichero del pool. Pasar
+  # `source` apuntando a un fichero propio no está permitido.
+  if incus storage create labpool btrfs size=8GiB >/dev/null 2>&1; then
     incus profile device set default root pool=labpool >/dev/null 2>&1 || true
     echo "  pool btrfs: los nodos comparten bloques con la imagen"
   else
@@ -102,10 +107,14 @@ fi
 
 echo "== perfil para los nodos del laboratorio"
 # El disco raíz lo aporta un perfil. El perfil por defecto trae además una tarjeta
-# en incusbr0 que no queremos en los nodos, así que hacemos uno a medida.
+# en incusbr0 que no queremos en los nodos, así que hacemos uno a medida. El pool
+# se toma del perfil por defecto: si es btrfs, los nodos comparten bloques; si el
+# pool btrfs no se pudo crear, sigue funcionando con el de directorios.
 if ! incus profile show netseclab >/dev/null 2>&1; then
   incus profile create netseclab
-  incus profile device add netseclab root disk path=/ pool=default
+  POOL_NODOS="$(incus profile device get default root pool 2>/dev/null || echo default)"
+  incus profile device add netseclab root disk path=/ "pool=$POOL_NODOS"
+  echo "  perfil netseclab sobre el pool $POOL_NODOS"
 fi
 
 echo "== imágenes de nodo, con lo imprescindible dentro"

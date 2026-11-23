@@ -230,17 +230,14 @@ def build(
         Step(
             "perfil",
             argv=[
-                "incus",
-                "profile",
-                "device",
-                "add",
-                PERFIL_NODOS,
-                "root",
-                "disk",
-                "path=/",
-                "pool=default",
+                "sh",
+                "-c",
+                # El pool se hereda del perfil por defecto: así funciona igual en
+                # una caja con btrfs (nodos copy-on-write) que con directorios.
+                'POOL="$(incus profile device get default root pool 2>/dev/null || echo default)"; '
+                'incus profile device add netseclab root disk path=/ "pool=$POOL"',
             ],
-            note="root disk of the nodes",
+            note="root disk for the nodes (same storage pool as the default profile)",
         )
     )
 
