@@ -15,6 +15,13 @@
 - Los errores de un `.labpack` se presentan como problemas del paquete («issues in the labpack») y no
   de la topología.
 
+### Corregido
+
+- **`make box` fallaba en un clon recién hecho**: `images/box/build.sh` estaba versionado sin permiso
+  de ejecución, así que en Linux daba `Permission denied`. Ahora los scripts de la caja se versionan
+  ejecutables y el `Makefile` los invoca con `bash`, que funciona aunque un clon de Windows pierda el
+  permiso.
+
 ## 0.2.0 — entornos reproducibles y distribución
 
 ### Añadido
