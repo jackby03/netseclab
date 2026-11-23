@@ -32,8 +32,17 @@ checks:
       No aparece ninguna petición HTTP en capture/ext.pcap. Captura el segmento ext mientras se
       pide la página, y recuerda que `lab capture` termina solo cuando pasa el tiempo indicado.
 
-  - assert: answer "¿Por qué se ve el tráfico si no es tu máquina?" contains "hub"
-    message: Piensa en la diferencia entre un hub y un switch.
+answers:
+  - id: modo-dmz
+    kind: fact
+    points: 5
+    question: "¿En qué modo está configurada la red dmz?"
+    message: Mira cómo declara la red el escenario y qué hace el conmutador con ella.
+    hash: 00154761637ca746c354a6d9cfbf1da1a92e79afa6bb127bb8a1c434e9c73170
+
+report:
+  - "¿Por qué se ve el tráfico de otras máquinas si no es tuyo?"
+  - "¿Qué diferencia hay entre un hub y un switch para observar el tráfico?"
 
 solution: |
   La red ext está declarada con `mode: hub`, así que el bridge se configura con `learning off`:

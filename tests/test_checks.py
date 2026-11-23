@@ -66,9 +66,10 @@ def test_un_parametro_no_admitido_falla():
         _check('capture dmz, since=last, contains: "x"')
 
 
-def test_gramatica_answer():
-    c = _check('answer "¿Por qué?" contains "reject"')
-    assert c.params["contains"] == "reject"
+def test_la_respuesta_ya_no_es_un_tipo_de_comprobacion():
+    """Un valor concreto va en `answers`, no en `checks`."""
+    with pytest.raises(LabErrors, match="unknown check"):
+        _check('answer "¿Por qué?" contains "reject"')
 
 
 def test_una_comprobacion_inventada_falla():
@@ -161,24 +162,14 @@ def test_captura_encuentra_el_texto(topo, workdir):
     assert ok
 
 
-def test_answer_sin_respuesta(topo):
-    check = _check('answer "¿Por qué?" contains "reject"')
-    ok, detalle = run_check(check, Incus(RecordingRunner()), topo, "")
-    assert not ok and "no saved answer" in detalle
-
-
-def test_answer_con_respuesta(topo):
-    check = _check('answer "¿Por qué?" contains "reject"')
-    ok, _ = run_check(check, Incus(RecordingRunner()), topo, "porque fw hace REJECT")
-    assert ok
-
-
 def test_el_ejercicio_de_ejemplo_se_carga():
     ejercicio = load_exercise(EJERCICIO)
     assert ejercicio.id == "06-fuzz-evasion"
     assert ejercicio.lab.name == "fuzz-evasion.yaml"
-    assert len(ejercicio.checks) == 4
-    assert {c.kind for c in ejercicio.checks} >= {"http-status", "file", "ids-alerts", "answer"}
+    assert len(ejercicio.checks) == 3
+    assert {c.kind for c in ejercicio.checks} >= {"http-status", "file", "ids-alerts"}
+    assert [a.id for a in ejercicio.answers] == ["cabecera-delatora"]
+    assert ejercicio.points == 5
     assert "respaldo" in ejercicio.brief
     assert "agente de usuario" in ejercicio.hints[0]
 

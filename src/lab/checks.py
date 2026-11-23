@@ -26,7 +26,6 @@ PATRONES = {
     "file": re.compile(r"^file\s+(\S+)\s+(\S+)\s+(exists|missing)$"),
     "ids-alerts": re.compile(r"^ids-alerts\s+(.+)$"),
     "capture": re.compile(r"^capture\s+([^,\s]+)\s*(?:,\s*(.+))?$"),
-    "answer": re.compile(r'^answer\s+"(.*)"\s+contains\s+"(.*)"$'),
 }
 
 # código de salida de `timeout` cuando se agota el tiempo
@@ -58,8 +57,6 @@ class Check:
             )
         if self.kind == "capture":
             return f"capture of {self.params['net']} contains {self.params['contains']!r}"
-        if self.kind == "answer":
-            return f"answer contains {self.params['contains']!r}"
         return self.kind
 
 
@@ -178,16 +175,13 @@ def parse_check(raw: dict, where: str) -> Check:
             mensaje,
         )
 
-    m = PATRONES["answer"].match(texto)
-    if m:
-        return Check("answer", {"question": m.group(1), "contains": m.group(2)}, mensaje)
-
     raise LabErrors(
         [
             Issue(
                 where,
                 f"unknown check {texto!r}. Supported forms: "
-                "reachable, port-state, http-status, file, ids-alerts, capture, answer",
+                "reachable, port-state, http-status, file, ids-alerts, capture. "
+                "A concrete value goes in the `answers` block, not in `checks`.",
             )
         ]
     )
@@ -217,7 +211,6 @@ def run_check(
     check: Check,
     incus: Incus,
     topo: Topology,
-    respuesta: str = "",
 ) -> tuple[bool, str]:
     p = check.params
 
@@ -266,11 +259,5 @@ def run_check(
             return False, f"capture {ruta} does not exist; run `lab capture {p['net']}` first"
         res = incus.runner.run(["grep", "-a", "-q", p["contains"], str(ruta)])
         return res.ok, f"contains {p['contains']!r}: {res.ok}"
-
-    if check.kind == "answer":
-        if not respuesta.strip():
-            return False, "no saved answer; use `lab answer <exercise> \"...\"`"
-        contiene = p["contains"].lower() in respuesta.lower()
-        return contiene, f"contains {p['contains']!r}: {contiene}"
 
     return False, f"unknown check type: {check.kind}"

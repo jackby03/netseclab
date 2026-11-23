@@ -45,8 +45,17 @@ checks:
       El IDS ha registrado alertas con tu IP. Mira el motivo en el log y vuelve a intentarlo
       con una técnica más discreta.
 
-  - assert: answer "¿Qué dos señales usaba la regla del IDS para detectar el escaneo?" contains "agente de usuario"
+answers:
+  - id: cabecera-delatora
+    kind: fact
+    points: 5
+    question: "¿Qué cabecera HTTP delataba las herramientas de escaneo?"
     message: Revisa las reglas en /etc/suricata/rules/lab.rules del nodo fw.
+    hash: a510e50665127ebf4514975babcac22aff4d1b9a82edf378305cd2bfede4ec83
+
+report:
+  - "¿Qué dos señales usaba la regla del IDS para detectar el escaneo?"
+  - "¿Qué cambiaste para repetir el ataque sin disparar el IDS?"
 
 solution: |
   Las reglas de fw detectan dos cosas por separado:

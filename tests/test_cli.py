@@ -162,14 +162,14 @@ def test_check_superado(monkeypatch, capsys, workdir):
     monkeypatch.setattr(cli, "_runner", _runner_feliz)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     (workdir / "answers").mkdir()
-    (workdir / "answers" / "06-fuzz-evasion.txt").write_text(
-        "el agente de usuario y el umbral de 404", encoding="utf-8"
+    (workdir / "answers" / "06-fuzz-evasion.json").write_text(
+        json.dumps({"cabecera-delatora": "User-Agent"}), encoding="utf-8"
     )
     codigo = cli.main(["check", str(EJERCICIO)])
     salida = capsys.readouterr().out
     assert codigo == 0
-    assert "4/4" in salida
-    assert "OK" in salida
+    assert "1/1 answers correct - 5/5 points" in salida
+    assert "3/3 environment checks passed" in salida
 
 
 def test_check_suspendido(monkeypatch, capsys, workdir):
@@ -191,17 +191,24 @@ def test_answer_avisa_si_no_se_puede_escribir(workdir, monkeypatch, capsys):
     def falla(*_args, **_kwargs):
         raise OSError(28, "No space left on device")
 
-    monkeypatch.setattr(cli, "write_answer", falla)
-    assert cli.main(["answer", str(EJERCICIO), "algo"]) == 1
+    monkeypatch.setattr(cli, "save_submitted", falla)
+    assert cli.main(["answer", str(EJERCICIO), "cabecera-delatora", "User-Agent"]) == 1
     error = capsys.readouterr().err
     assert "cannot save the answer" in error
     assert "free disk space" in error
 
 
-def test_answer_guarda_la_respuesta(workdir, monkeypatch, capsys):
+def test_answer_guarda_el_valor(workdir, monkeypatch, capsys):
     monkeypatch.chdir(workdir)
-    assert cli.main(["answer", str(EJERCICIO), "mi razonamiento"]) == 0
-    assert (workdir / "answers" / "06-fuzz-evasion.txt").read_text(encoding="utf-8") == "mi razonamiento"
+    assert cli.main(["answer", str(EJERCICIO), "cabecera-delatora", "User-Agent"]) == 0
+    datos = json.loads((workdir / "answers" / "06-fuzz-evasion.json").read_text(encoding="utf-8"))
+    assert datos == {"cabecera-delatora": "User-Agent"}
+
+
+def test_answer_de_un_id_que_no_existe(workdir, monkeypatch, capsys):
+    monkeypatch.chdir(workdir)
+    assert cli.main(["answer", str(EJERCICIO), "inventada", "x"]) == 2
+    assert "no answer 'inventada'" in capsys.readouterr().err
 
 
 def test_down_con_perfil_inexistente_no_revienta(capsys):

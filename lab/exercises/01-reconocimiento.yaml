@@ -34,8 +34,17 @@ checks:
     message: >
       El 22 debería estar filtrado desde exta. Desde base, en cambio, se llega: piensa por qué.
 
-  - assert: answer "¿Por qué el 443 aparece closed y el resto filtered?" contains "reject"
+answers:
+  - id: puerto-cerrado
+    kind: fact
+    points: 5
+    question: "¿Qué puerto de www aparece como «closed» desde exta?"
     message: Revisa las reglas de fw en /etc/lab/fw.nft.
+    hash: 6d05621ab7cb7b4fb796ca2ffbe1a141e0d4319d3deb6a05322b9de85d69b923
+
+report:
+  - "¿Por qué el 443 aparece «closed» y el resto «filtered»?"
+  - "¿Qué regla de fw produce cada uno de esos dos comportamientos?"
 
 solution: |
   fw tiene dos reglas distintas para dmza:

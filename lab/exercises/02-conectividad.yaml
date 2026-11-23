@@ -43,8 +43,17 @@ checks:
     message: >
       El ping a la DMZ debería fallar aunque el 80 esté abierto: el cortafuegos solo acepta TCP/80.
 
-  - assert: answer "¿Qué tres flujos permite el cortafuegos?" contains "int"
-    message: Escribe la matriz y compárala con las reglas de fw.
+answers:
+  - id: red-bloqueada
+    kind: fact
+    points: 5
+    question: "¿A qué red no puede llegar la DMZ?"
+    message: Compara la matriz que has dibujado con las reglas de fw.
+    hash: 6da88c34ba124c41f977db66a4fc5c1a951708d285c81bb0d47c3206f4c27ca8
+
+report:
+  - "Escribe la matriz de conectividad completa entre las tres redes."
+  - "¿Por qué el ping a la DMZ falla aunque el puerto 80 esté abierto?"
 
 solution: |
   La matriz que sale es:

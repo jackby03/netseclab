@@ -34,9 +34,17 @@ checks:
   - assert: port-state exta -> www:80 is open
     message: El 80 tiene que seguir funcionando desde el exterior.
 
-  - assert: answer "¿Por qué filtrar en el servidor no sustituye a filtrar en el cortafuegos?" contains "defensa en profundidad"
-    message: >
-      Piensa qué pasa si alguien llega desde otra red, o si el cortafuegos de fw se configura mal.
+answers:
+  - id: puerto-abierto
+    kind: fact
+    points: 5
+    question: "¿Qué puerto de www tiene que seguir abierto desde exta después de endurecerla?"
+    message: El cortafuegos del servidor no puede romper el servicio.
+    hash: 48449a14a4ff7d79bb7a1b6f3d488eba397c36ef25634c111b49baf362511afc
+
+report:
+  - "¿Por qué filtrar en el servidor no sustituye a filtrar en el cortafuegos?"
+  - "¿Qué pasa si alguien llega desde otra red o si el cortafuegos de fw se configura mal?"
 
 solution: |
   En www, como root:

@@ -41,8 +41,17 @@ checks:
   - assert: port-state pivot -> inta1:22 is open
     message: El SSH de inta1 debería estar abierto desde pivot.
 
-  - assert: answer "¿Qué condición tiene que cumplir una máquina para enrutar entre dos redes?" contains "reenvío"
-    message: Piensa en el `ip_forward` y en tener una interfaz en cada red.
+answers:
+  - id: parametro-kernel
+    kind: fact
+    points: 5
+    question: "¿Qué parámetro del kernel hay que activar para que una máquina enrute?"
+    message: Está en /proc/sys/net/ipv4/ y se llama igual en sysctl.
+    hash: beef77e853152f57ac6528120452119837fb2e242570fa6970eb1011f316fdf6
+
+report:
+  - "¿Qué condición tiene que cumplir una máquina para enrutar entre dos redes?"
+  - "¿Por qué sirve de poco activar el reenvío si no hay una ruta de vuelta?"
 
 solution: |
   La topología es:

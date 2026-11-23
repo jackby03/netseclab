@@ -10,6 +10,7 @@ import argparse
 import json
 import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from . import __version__
@@ -27,8 +28,8 @@ from .engine import (
 from .engine.capture import plan_capture, run_capture
 from .engine.incus import SNAPSHOT_INICIAL
 from .errors import LabErrors
+from .answers import digest, read_submitted, save_submitted, store
 from .exercise import load as load_exercise
-from .exercise import read_answer, write_answer
 from .model import load
 from .plan import Plan, build
 
@@ -357,32 +358,79 @@ def cmd_check(args) -> int:
         print(str(exc), file=sys.stderr)
         return 2
 
-    try:
-        topo = load(ejercicio.lab)
-    except LabErrors as exc:
-        print(f"the exercise lab is not valid:\n{exc}", file=sys.stderr)
-        return 2
+    entregadas = read_submitted(ejercicio.id)
+    respuestas = []
+    puntos = 0
+    for respuesta in ejercicio.answers:
+        entregado = entregadas.get(respuesta.id, "")
+        correcta = bool(entregado) and respuesta.accepts(entregado)
+        if correcta:
+            puntos += respuesta.points
+        respuestas.append((respuesta, entregado, correcta))
 
-    if _sin_incus():
-        return 3
-
-    respuesta = read_answer(ejercicio)
-    incus = Incus(_runner())
     resultados: list[tuple[str, bool, str]] = []
-    for check in ejercicio.checks:
-        ok, detalle = run_check(check, incus, topo, respuesta)
-        if ok:
-            resultados.append((check.describe(), True, detalle))
-        elif check.message:
-            resultados.append((check.describe(), False, f"{check.message.strip()}\n          detail: {detalle}"))
-        else:
-            resultados.append((check.describe(), False, detalle))
+    if ejercicio.checks:
+        try:
+            topo = load(ejercicio.lab)
+        except LabErrors as exc:
+            print(f"the exercise lab is not valid:\n{exc}", file=sys.stderr)
+            return 2
+        if _sin_incus():
+            return 3
+        incus = Incus(_runner())
+        for check in ejercicio.checks:
+            ok, detalle = run_check(check, incus, topo)
+            if ok:
+                resultados.append((check.describe(), True, detalle))
+            elif check.message:
+                resultados.append(
+                    (check.describe(), False, f"{check.message.strip()}\n          detail: {detalle}")
+                )
+            else:
+                resultados.append((check.describe(), False, detalle))
 
-    aciertos = sum(1 for _, ok, _ in resultados if ok)
+    aciertos = sum(1 for _, _, ok in respuestas if ok)
     print(f"{ejercicio.id} - {ejercicio.title}")
-    print(f"{aciertos}/{len(resultados)} checks passed\n")
-    print(_informe(resultados))
-    return 0 if aciertos == len(resultados) else 1
+    if ejercicio.answers:
+        print(f"{aciertos}/{len(respuestas)} answers correct - {puntos}/{ejercicio.points} points")
+    if resultados:
+        superados = sum(1 for _, ok, _ in resultados if ok)
+        print(f"{superados}/{len(resultados)} environment checks passed")
+    print()
+
+    if respuestas:
+        print("ANSWERS")
+        for respuesta, entregado, correcta in respuestas:
+            marca = "[OK  ]" if correcta else "[FAIL]"
+            print(f"  {marca} {respuesta.points:>3} pt  {respuesta.question}")
+            if entregado:
+                print(f"          answer: {entregado}")
+            else:
+                print("          not answered")
+            if not correcta and respuesta.where:
+                print(f"          where to look: {respuesta.where}")
+            if not correcta and respuesta.message:
+                print(f"          {respuesta.message.strip()}")
+        print()
+
+    if resultados:
+        print("ENVIRONMENT")
+        print(_informe(resultados))
+        print()
+
+    if ejercicio.report:
+        print(f"there are {len(ejercicio.report)} questions for the written report;")
+        print(f"`lab report {args.file}` writes the template")
+        print()
+
+    if ejercicio.reveals_answers:
+        print(
+            "note: this exercise carries the answers in clear; distribute a copy with "
+            "`hash` instead of `value`"
+        )
+
+    completo = aciertos == len(respuestas) and all(ok for _, ok, _ in resultados)
+    return 0 if completo else 1
 
 
 def cmd_answer(args) -> int:
@@ -391,16 +439,72 @@ def cmd_answer(args) -> int:
     except LabErrors as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    try:
-        ruta = write_answer(ejercicio, args.text)
-    except OSError as exc:
+    respuesta = next((a for a in ejercicio.answers if a.id == args.id), None)
+    if respuesta is None:
+        disponibles = ", ".join(a.id for a in ejercicio.answers) or "(none)"
         print(
-            f"error: cannot save the answer in {ejercicio.answer_file.parent}: {exc}. "
+            f"error: the exercise has no answer {args.id!r}. Available: {disponibles}",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        ruta = save_submitted(ejercicio.id, respuesta.id, args.value)
+    except OSError as exc:
+        destino = store(ejercicio.id).parent
+        print(
+            f"error: cannot save the answer in {destino}: {exc}. "
             "Check free disk space with `df -h /`.",
             file=sys.stderr,
         )
         return 1
-    print(f"answer saved to {ruta}")
+    print(f"answer {respuesta.id!r} saved to {ruta}")
+    print(f"run `lab check {args.file}` to see whether it is correct")
+    return 0
+
+
+def cmd_report(args) -> int:
+    try:
+        ejercicio = load_exercise(args.file)
+    except LabErrors as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    entregadas = read_submitted(ejercicio.id)
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    lineas = [
+        f"# {ejercicio.title}",
+        "",
+        f"- Exercise: `{ejercicio.id}`",
+        f"- Date: {hoy}",
+        "- Student: ",
+        "",
+    ]
+    if ejercicio.answers:
+        lineas += ["## Answers", "", "| Question | Value |", "|---|---|"]
+        for respuesta in ejercicio.answers:
+            valor = entregadas.get(respuesta.id, "")
+            lineas.append(f"| {respuesta.question} | {valor or '(not answered)'} |")
+        lineas.append("")
+    if ejercicio.report:
+        lineas += ["## Written report", ""]
+        for idx, pregunta in enumerate(ejercicio.report, start=1):
+            lineas += [f"### {idx}. {pregunta}", "", "", ""]
+    texto = "\n".join(lineas).rstrip() + "\n"
+    if args.out:
+        ruta = Path(args.out)
+        try:
+            ruta.parent.mkdir(parents=True, exist_ok=True)
+            ruta.write_text(texto, encoding="utf-8", newline="\n")
+        except OSError as exc:
+            print(f"error: cannot write {ruta}: {exc}", file=sys.stderr)
+            return 1
+        print(f"report template written to {ruta}")
+    else:
+        print(texto, end="")
+    return 0
+
+
+def cmd_hash(args) -> int:
+    print(digest(args.value))
     return 0
 
 
@@ -588,10 +692,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("file")
     p.set_defaults(func=cmd_check)
 
-    p = sub.add_parser("answer", help="save the reasoning answer of an exercise")
+    p = sub.add_parser("answer", help="submit the concrete value of an answer")
     p.add_argument("file")
-    p.add_argument("text")
+    p.add_argument("id", help="identifier of the answer, as declared in the exercise")
+    p.add_argument("value", help="the value itself, not a sentence")
     p.set_defaults(func=cmd_answer)
+
+    p = sub.add_parser("report", help="write the template of the written report")
+    p.add_argument("file")
+    p.add_argument("--out", help="write it to a file instead of the terminal")
+    p.set_defaults(func=cmd_report)
+
+    p = sub.add_parser("hash", help="sha256 of an answer, to publish exercises without the value")
+    p.add_argument("value")
+    p.set_defaults(func=cmd_hash)
 
     p = sub.add_parser("web", help="node consoles in the browser")
     p.add_argument("file", nargs="?", help="topology; if omitted, list the Incus instances")
