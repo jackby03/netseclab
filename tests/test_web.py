@@ -114,7 +114,7 @@ def test_ruta_desconocida(servidor):
     assert exc.value.code == 404
 
 
-def test_token_protege_la_api():
+def test_token_protege_la_api_y_la_pagina():
     srv = make_server(
         ["fw"], host="127.0.0.1", port=0, token="secreto", fabrica=lambda _n: FakeTerminal()
     )
@@ -130,9 +130,15 @@ def test_token_protege_la_api():
         estado, cuerpo, _ = _get(srv, "/api/nodes?token=secreto")
         assert estado == 200 and json.loads(cuerpo) == ["fw"]
 
-        # la página lleva el token incrustado para que el navegador pueda usarlo
-        _, pagina, _ = _get(srv, "/")
-        assert b"secreto" in pagina
+        # La página lleva el token incrustado para que el navegador pueda usarlo: servirla sin
+        # comprobarlo publicaba el token a quien la pidiera.
+        with pytest.raises(urllib.error.HTTPError) as exc_pagina:
+            _get(srv, "/")
+        assert exc_pagina.value.code == 401
+        assert b"secreto" not in exc_pagina.value.read()
+
+        estado, pagina, _ = _get(srv, "/?token=secreto")
+        assert estado == 200 and b"secreto" in pagina
     finally:
         srv.sala.cerrar_todo()
         srv.shutdown()

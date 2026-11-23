@@ -28,6 +28,21 @@
 - **`lab up` podía comerse la entrada estándar**: sin pasar `stdin`, los comandos heredaban la
   entrada del proceso y `incus profile create` interpretaba como perfil YAML lo que viniera de un
   script lanzado por stdin. El ejecutor ahora cierra la entrada de los comandos.
+- **Los nodos reiniciados se quedaban a medio arrancar**: `systemd-networkd-wait-online` esperaba
+  indefinidamente una interfaz que gestiona `lab-net`, así que `network-online.target` no llegaba y
+  servicios como `apache2` y `dnsmasq` no arrancaban: la web de la DMZ aparecía filtrada. La imagen
+  de nodo enmascara esa espera, porque la red la configura el laboratorio, no networkd.
+- **`lab up` después de `lab down` fallaba**: `incus launch` no arranca una instancia que ya existe y
+  el primer `incus exec` daba «Instance is not running». El plan añade un `incus start` por nodo,
+  que sobre algo ya en marcha es un no-op.
+- **`lab up` termina cuando el laboratorio está listo**: un paso final espera a que cada nodo acabe
+  sus trabajos de systemd. Antes, el primer `nmap` o `lab check` podía llegar a una web que todavía
+  no escuchaba.
+- **`lab web --token` publicaba el token**: la página se servía sin comprobarlo y lleva el token
+  incrustado, así que pedir `/` bastaba para obtenerlo. Ahora la página también exige el token y sin
+  él devuelve 401 sin filtrar nada.
+- **El toolset `sniff` pedía `mitmproxy`**, que no está en los repositorios de Debian 13: el `apt`
+  del nodo fallaba entero y no se instalaba nada del conjunto. Se retira del catálogo.
 - La salida de `lab status` en la documentación decía `RUNNING`; el CLI imprime `Running`, como lo
   da Incus.
 - **`make box` fallaba en un clon recién hecho**: `images/box/build.sh` estaba versionado sin permiso

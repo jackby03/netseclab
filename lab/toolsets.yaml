@@ -8,7 +8,7 @@ toolsets:
   webfuzz:
     packages: [ffuf, gobuster, dirb, curl, jq]
   sniff:
-    packages: [tcpdump, tshark, bettercap, mitmproxy, tcpflow]
+    packages: [tcpdump, tshark, bettercap, tcpflow]
   crack:
     packages: [hydra, john, medusa]
   tls:

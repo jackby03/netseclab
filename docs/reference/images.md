@@ -61,7 +61,7 @@ nodes:
 |---|---|
 | `recon` | `nmap`, `masscan`, `dnsutils`, `whatweb`, `whois`, `curl` |
 | `webfuzz` | `ffuf`, `gobuster`, `dirb`, `curl`, `jq` |
-| `sniff` | `tcpdump`, `tshark`, `bettercap`, `mitmproxy`, `tcpflow` |
+| `sniff` | `tcpdump`, `tshark`, `bettercap`, `tcpflow` |
 | `crack` | `hydra`, `john`, `medusa` |
 | `tls` | `openssl`, `sslscan`, `certbot` |
 | `blue` | `auditd`, `aide`, `fail2ban`, `lynis`, `rkhunter` |
