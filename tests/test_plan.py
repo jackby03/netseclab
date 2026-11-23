@@ -94,36 +94,44 @@ def test_hosts_resuelve_alias(example_net):
     assert "10.5.2.10\tinta.example.net" in texto
 
 
-def test_script_de_red_de_un_nodo_multipata(example_net):
-    guion = netconf.net_script(example_net, example_net.node("fw"))
-    # fw declara sus direcciones, así que se configuran en fijo aunque la red sea DHCP
-    assert "ip addr add 10.5.0.254/24 dev eth0" in guion
-    assert "ip addr add 10.5.1.254/24 dev eth1" in guion
-    assert "ip addr add 10.5.2.254/24 dev eth2" in guion
-    assert "sysctl -q -w net.ipv4.ip_forward=1" in guion
+@pytest.fixture(scope="module")
+def estatico(tmp_path_factory):
+    """Topología con direccionamiento fijo, para probar lo que ya no se le deja al DHCP."""
+    ruta = tmp_path_factory.mktemp("estatico") / "estatico.yaml"
+    ruta.write_text(
+        """
+version: 1
+name: estatico
+networks:
+  a:
+    cidr: 10.7.0.0/24
+    addressing: auto
+    gateway: 10.7.0.1
+    routes:
+      - { to: 10.8.0.0/24, via: 10.7.0.254 }
+  b: { cidr: 10.8.0.0/24, addressing: auto, gateway: 10.8.0.1 }
+nodes:
+  - name: r
+    links: [{ net: a, ip: 10.7.0.254 }, { net: b, ip: 10.8.0.254 }]
+    sysctls: { net.ipv4.ip_forward: 1 }
+  - { name: cli, links: [{ net: a, ip: 10.7.0.10 }] }
+  - { name: srv, links: [{ net: b, ip: 10.8.0.10 }] }
+""",
+        encoding="utf-8",
+    )
+    return load(ruta)
 
 
-def test_las_rutas_del_segmento_llegan_a_los_nodos_con_ip_fija(example_net):
-    """La opción 121 solo la ven los clientes DHCP; con IP fija las rutas se ponen a mano."""
+def test_una_red_dhcp_con_direccion_declarada_se_configura_en_el_nodo(example_net):
+    """Antes dependía del cliente DHCP de la imagen: tras un reinicio se quedaba sin rutas y la web
+    de la DMZ salía filtrada desde exta."""
     guion = netconf.net_script(example_net, example_net.node("exta"))
+    assert "ip addr add 10.5.0.10/24 dev eth0" in guion
     assert "ip route replace 10.5.1.0/24 via 10.5.0.254 dev eth0" in guion
-    assert "ip route replace 10.5.2.0/24 via 10.5.0.254 dev eth0" in guion
+    assert "ip route replace default via 10.5.0.1 dev eth0" in guion
 
 
-def test_el_router_no_se_crea_rutas_hacia_si_mismo(example_net):
-    """fw es el siguiente salto: una ruta hacia sí mismo rompería la suya conectada."""
-    guion = netconf.net_script(example_net, example_net.node("fw"))
-    assert "via 10.5.0.254" not in guion
-
-
-def test_las_redes_ya_conectadas_no_llevan_ruta(example_net):
-    """base está en las tres redes: no necesita rutas para llegar a ninguna."""
-    guion = netconf.net_script(example_net, example_net.node("base"))
-    assert "ip route replace 10.5.1.0/24" not in guion
-    assert "ip route replace 10.5.2.0/24" not in guion
-
-
-def test_dhcp_solo_para_quien_no_tiene_ip_fija(workdir):
+def test_un_nodo_sin_direccion_pide_dhcp_y_reintenta(workdir):
     ruta = workdir / "dhcp.yaml"
     ruta.write_text(
         """
@@ -138,12 +146,35 @@ nodes:
         encoding="utf-8",
     )
     topo = load(ruta)
-    servidor = netconf.net_script(topo, topo.node("srv"))
     cliente = netconf.net_script(topo, topo.node("cli"))
-    assert "ip addr add 10.9.0.1/24 dev eth0" in servidor
-    assert "dhclient -1 -v eth0" not in servidor
-    assert "dhclient -1 -v eth0" in cliente
+    assert "dhclient -1 -q eth0" in cliente
+    assert "seq 1 60" in cliente
     assert "ip addr add" not in cliente
+
+
+def test_una_red_fija_se_configura_en_el_nodo(estatico):
+    guion = netconf.net_script(estatico, estatico.node("cli"))
+    assert "ip addr add 10.7.0.10/24 dev eth0" in guion
+    assert "ip route replace 10.8.0.0/24 via 10.7.0.254 dev eth0" in guion
+
+
+def test_un_nodo_multipata_configura_todas_sus_direcciones(estatico):
+    guion = netconf.net_script(estatico, estatico.node("r"))
+    assert "ip addr add 10.7.0.254/24 dev eth0" in guion
+    assert "ip addr add 10.8.0.254/24 dev eth1" in guion
+    assert "sysctl -q -w net.ipv4.ip_forward=1" in guion
+
+
+def test_el_router_no_se_crea_rutas_hacia_si_mismo(estatico):
+    """r es el siguiente salto: una ruta hacia sí mismo rompería la suya conectada."""
+    guion = netconf.net_script(estatico, estatico.node("r"))
+    assert "via 10.7.0.254" not in guion
+
+
+def test_las_redes_ya_conectadas_no_llevan_ruta(estatico):
+    """r está en las dos redes: no necesita ruta para llegar a ninguna."""
+    guion = netconf.net_script(estatico, estatico.node("r"))
+    assert "ip route replace 10.8.0.0/24" not in guion
 
 
 def test_el_script_generado_es_shell_valido(plan):
@@ -194,4 +225,7 @@ def test_el_plan_espera_a_que_los_nodos_termine_de_arrancar(plan):
     """Sin la espera, el primer nmap llega a una web que todavía no escucha."""
     esperas = [paso for paso in plan.steps if paso.phase == "wait"]
     assert len(esperas) == len(plan.nodes)
-    assert all("systemctl list-jobs" in paso.command() for paso in esperas)
+    assert all("is-system-running" in paso.command() for paso in esperas)
+    # y cada espera conoce la dirección que el nodo tiene que tener
+    fw = next(paso for paso in esperas if " fw " in paso.command() + " ")
+    assert "10.5.0.254" in fw.command() and "10.5.1.254" in fw.command()
