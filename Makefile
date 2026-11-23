@@ -40,10 +40,10 @@ render:
 	done
 
 box:
-	./images/box/build.sh
+	bash ./images/box/build.sh
 
 vmdk:
-	./images/box/build.sh vmdk
+	bash ./images/box/build.sh vmdk
 
 clean:
 	rm -rf build .pytest-tmp .pytest_cache .coverage htmlcov
