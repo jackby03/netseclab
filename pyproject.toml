@@ -17,7 +17,6 @@ classifiers = [
   "Environment :: Console",
   "Intended Audience :: Education",
   "Intended Audience :: System Administrators",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
@@ -115,6 +114,7 @@ max-positional-args = 8
 
 [tool.mypy]
 python_version = "3.11"
+platform = "linux"
 mypy_path = "src"
 packages = ["lab", "tynix"]
 check_untyped_defs = true

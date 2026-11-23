@@ -55,13 +55,13 @@ class PtyTerminal:
     def __init__(self, argv: list[str], filas: int = FILAS, columnas: int = COLUMNAS):
         if not TIENE_PTY:
             raise RuntimeError("las consolas con PTY necesitan Linux; en Windows usa `lab console`")
-        self.master, esclavo = pty.openpty()  # type: ignore[attr-defined]
+        self.master, esclavo = pty.openpty()
         try:
             import fcntl  # noqa: PLC0415 - solo existe en Unix
 
-            fcntl.ioctl(  # type: ignore[attr-defined]
+            fcntl.ioctl(
                 self.master,
-                termios.TIOCSWINSZ,  # type: ignore[attr-defined]
+                termios.TIOCSWINSZ,
                 struct.pack("HHHH", filas, columnas, 0, 0),
             )
         except OSError:  # pragma: no cover - depende de la plataforma
