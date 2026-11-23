@@ -34,13 +34,16 @@ arrancada=0
 apagar() {
   if [ "$arrancada" -eq 1 ]; then
     "${SSH[@]}" 'sudo poweroff' >/dev/null 2>&1 || true
-    if [ -f "$PIDFILE" ]; then
+    # QEMU borra su propio pidfile al salir; se lee una vez y se tolera que ya no esté.
+    pid="$(cat "$PIDFILE" 2>/dev/null || true)"
+    if [ -n "$pid" ]; then
       for _ in $(seq 1 30); do
-        kill -0 "$(cat "$PIDFILE")" 2>/dev/null || break
+        kill -0 "$pid" 2>/dev/null || break
         sleep 1
       done
-      kill "$(cat "$PIDFILE")" 2>/dev/null || true
+      kill "$pid" 2>/dev/null || true
     fi
+    arrancada=0
   fi
   rm -f "$OVERLAY" "$PIDFILE"
 }
