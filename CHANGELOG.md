@@ -1,6 +1,6 @@
 # Cambios
 
-## No publicado
+## 0.2.0 — entornos reproducibles y distribución
 
 ### Añadido
 
