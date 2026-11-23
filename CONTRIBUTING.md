@@ -152,3 +152,101 @@ lab validate "lab/exercises/*.yaml"
 
 Si tu cambio toca el motor, añade la prueba con `RecordingRunner` en vez de pedirle a quien revise
 que tenga Incus.
+
+## Trabajo pendiente
+
+Tareas abiertas del proyecto. Cada una indica el comando o el resultado que la cierra.
+
+### 1. Reconstruir la caja con la versión actual
+
+La caja publicada lleva el CLI de la 0.1.0. El artefacto tiene que rehacerse con el código actual:
+
+```bash
+make box
+```
+
+Después, dentro de la caja y por primera vez con Incus real, comprobar las órdenes que hasta ahora
+solo se han probado con el ejecutor simulado:
+
+```bash
+lab pack lab/examples/example.net.yaml --out /tmp/ejemplo.labpack
+lab unpack /tmp/ejemplo.labpack --to /tmp/extraido
+lab lock lab/examples/example.net.yaml
+lab lock lab/examples/example.net.yaml --check
+lab gc lab/examples/example.net.yaml
+lab push lab-node-v1 --to /tmp/bucket
+lab pull lab-node-v1 --from /tmp/bucket
+```
+
+Criterio: `lab pack` verifica y extrae, `lab lock` escribe el lock y `--check` confirma que no hay
+deriva, `lab gc` no borra imágenes en uso y `lab push`/`lab pull` verifican el `sha256` antes de
+importar.
+
+### 2. Revisar los seis ejercicios con criterio docente
+
+Leer enunciado, tareas, pistas, comprobaciones y solución de cada ejercicio y comprobar que explican
+lo que se quiere explicar:
+
+```bash
+lab check lab/exercises/01-reconocimiento.yaml
+lab check lab/exercises/02-conectividad.yaml
+lab check lab/exercises/03-captura.yaml
+lab check lab/exercises/04-pivoteo.yaml
+lab check lab/exercises/05-endurecimiento.yaml
+lab check lab/exercises/06-fuzz-evasion.yaml
+```
+
+Criterio: cada corrección da el resultado esperado dentro de la caja y las soluciones son correctas.
+Prestar atención al 05, que exige encontrar el cortafuegos del servidor, y al 06, que depende del
+umbral real de Suricata y del tiempo de espera de la captura.
+
+### 3. Decidir la visibilidad del repositorio
+
+Antes de abrirlo:
+
+- revisar el README renderizado en GitHub, que es lo primero que verá quien llegue;
+- decidir si la caja se publica como release de GitHub, en un bucket de la universidad o en ambos;
+- si se publica en Zenodo, conectar el repositorio para que cada release tenga DOI.
+
+Criterio: el repositorio se abre con un README correcto y una decisión escrita sobre el artefacto.
+
+### 4. Publicar la caja
+
+Elegir destino y dejarlo documentado en el README:
+
+- **Release de GitHub**: un clic, pero ~1,9 GB por release y un límite de 2 GB por fichero.
+- **Bucket universitario**: sin límite, pero hace falta que quien lo descargue conozca la URL.
+- **Ambos**: el bucket como origen y el release como espejo.
+
+Criterio: el artefacto se descarga desde una URL pública y la caja arranca desde ella.
+
+### 5. Revisar el encaje institucional
+
+Un laboratorio que lanza `nmap` y fuerza bruta tiene implicaciones que no son técnicas:
+
+- confirmar que la normativa de la institución permite este tipo de prácticas;
+- mantener la salida a Internet desactivada por defecto: el tráfico de escaneo saldría con la IP de
+  la institución;
+- si se despliega en un servidor de aula compartido, exigir token en `lab web` y separar la red de
+  gestión.
+
+Criterio: hay una nota escrita con las condiciones de uso aceptadas.
+
+### 6. Mantener las versiones
+
+- La versión de Debian de la caja está fijada en `DEBIAN_BUILD`. Al cambiarla, reconstruir la caja y
+  volver a pasar los ejercicios.
+- Los ejercicios dependen de versiones concretas de herramientas (Suricata, ffuf, Apache). El CI
+  valida los ficheros, no el comportamiento: la comprobación real se hace en la caja.
+- Cada versión lleva etiqueta, entrada en `CHANGELOG.md` y notas de release. La convención está en
+  este mismo documento.
+
+Criterio: la caja y el `CHANGELOG.md` describen la misma versión.
+
+### 7. Cerrar los pendientes técnicos
+
+- Firma de paquetes `.labpack` (GPG o minisign) y `lab unpack --verify-signature`.
+- Salida a Internet declarada (`lab up --uplink`) y grabación/reproducción de Internet.
+- Herramientas por nodo (`tools:`) con copia y ejecución controlada.
+- Escenario de Samba AD para cubrir Active Directory sin nodos Windows.
+- Nodos Windows: fuera del alcance actual por licencia, tamaño y virtualización anidada.

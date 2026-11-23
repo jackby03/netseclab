@@ -1,0 +1,77 @@
+site_name: netseclab
+site_description: Laboratorio de seguridad en redes ligero, declarativo y reproducible
+site_url: https://jackby03.github.io/netseclab/
+repo_url: https://github.com/jackby03/netseclab
+repo_name: jackby03/netseclab
+edit_uri: edit/main/docs/
+
+# El README de la carpeta es para verlo en GitHub; no forma parte del sitio.
+exclude_docs: |
+  README.md
+
+strict: true
+
+theme:
+  name: material
+  language: es
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Cambiar a oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Cambiar a claro
+
+nav:
+  - Inicio: index.md
+  - Empezar: getting-started.md
+  - Conceptos:
+      - Taxonomía: concepts/taxonomy.md
+      - Arquitectura: concepts/architecture.md
+  - Guías:
+      - Uso diario: guides/operating.md
+      - Ejercicios: guides/exercises.md
+      - Compartir laboratorios: guides/sharing.md
+  - Referencia:
+      - Topología: reference/topology.md
+      - CLI: reference/cli.md
+      - Imágenes: reference/images.md
+  - Diseño:
+      - Origen: design/origins.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - attr_list
+  - def_list
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jackby03/netseclab
