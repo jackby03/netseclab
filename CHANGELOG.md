@@ -22,6 +22,11 @@
 
 ### Corregido
 
+- **Las redes `nat` salían a Internet por IP, pero no resolvían nombres**: el nodo recibía una
+  `resolv.conf` con el stub de systemd-resolved sin upstream. Ahora, cuando la topología no declara
+  un servidor DNS en ese segmento, `lab-net` usa la puerta del bridge NAT, que hace de resolutor y
+  reenvía al anfitrión.
+
 - **Los nodos con IP fija no tenían rutas hacia los demás segmentos**: las rutas de
   `networks.<red>.routes` solo se servían por DHCP (opción 121) y un nodo con `ip:` explícita no
   pide DHCP, así que desde `exta` no se llegaba a la DMZ y `nmap` avisaba de que no podía determinar
@@ -100,6 +105,11 @@
 
 ### Corregido
 
+- **Las redes `nat` salían a Internet por IP, pero no resolvían nombres**: el nodo recibía una
+  `resolv.conf` con el stub de systemd-resolved sin upstream. Ahora, cuando la topología no declara
+  un servidor DNS en ese segmento, `lab-net` usa la puerta del bridge NAT, que hace de resolutor y
+  reenvía al anfitrión.
+
 - Tipos opcionales en `dnsmasq` que podían reventar con un nodo sin enlace en una red.
 - `lab web` imprimía la dirección del servidor sin normalizar (`bytes` en algunos casos).
 - Código muerto e importaciones perezosas innecesarias detectadas por el análisis estático.
@@ -135,7 +145,12 @@ VM ligera con contenedores, se rompe sin miedo, se restaura en un comando y se c
 - **6 ejercicios** y **4 laboratorios** de ejemplo.
 - **175 pruebas**.
 
-### Corregido durante la validación en la caja
+### Corregido
+
+- **Las redes `nat` salían a Internet por IP, pero no resolvían nombres**: el nodo recibía una
+  `resolv.conf` con el stub de systemd-resolved sin upstream. Ahora, cuando la topología no declara
+  un servidor DNS en ese segmento, `lab-net` usa la puerta del bridge NAT, que hace de resolutor y
+  reenvía al anfitrión. durante la validación en la caja
 
 Estos fallos solo aparecieron al ejecutar el laboratorio de verdad, no en las pruebas con ejecutor
 simulado:
