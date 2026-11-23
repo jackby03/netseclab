@@ -183,8 +183,16 @@ lab unpack edr-intro.labpack --to labs/edr-intro --signer profesor.pub
 | Opción de `lab unpack` | Efecto |
 |---|---|
 | `--to <directorio>` | Destino de la extracción; obligatorio. |
-| `--signer <clave.pub>` | Clave pública aceptada; repetible. Sin esta opción no se mira la firma. |
+| `--signer <clave.pub>` | Clave pública aceptada, o su URL; repetible. Sin esta opción no se mira la firma. |
 | `--signature <ruta>` | Firma que se comprueba; por defecto `<paquete>.sig`. |
+
+La huella de la clave se publica junto al enunciado, para que el alumno pueda comprobar que el `.pub`
+que le han dado es el que toca:
+
+```bash
+ssh-keygen -lf profesor.pub
+# 256 SHA256:… profesor@universidad (ED25519)
+```
 
 Qué garantiza y qué no:
 
