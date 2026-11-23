@@ -83,6 +83,22 @@ class Incus:
             for i in datos
         ]
 
+    def imagenes(self) -> list[str]:
+        """Alias de las imágenes presentes en el almacén."""
+        res = self._run("image", "list", "--format", "csv", "-c", "aliases")
+        if not res.ok:
+            return []
+        alias: list[str] = []
+        for linea in res.out.splitlines():
+            for nombre in linea.split(","):
+                limpio = nombre.strip()
+                if limpio:
+                    alias.append(limpio)
+        return alias
+
+    def borrar_imagen(self, alias: str) -> None:
+        self._run("image", "delete", alias)
+
     def snapshots(self, nodo: str) -> list[str]:
         """Nombres de los snapshots de una instancia.
 

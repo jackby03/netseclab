@@ -18,9 +18,11 @@ from pathlib import Path
 
 import yaml
 
+from tynix.store import garbage
+
 from . import __version__
 from .answers import digest, read_submitted, save_submitted, store
-from .catalog import load_images, load_toolsets
+from .catalog import load_images, load_toolsets, resolve_image
 from .checks import run_check
 from .engine import (
     Incus,
@@ -38,6 +40,11 @@ from .images import build_plan, listar_imagenes, load_recipe
 from .model import load
 from .plan import Plan, build
 from .web import make_server, serve
+
+# Prefijos de las imágenes que gestiona este proyecto. Lo que no empiece por uno
+# de ellos no se toca nunca.
+DEFAULT_GC_PREFIXES = ("lab-", "lab/")
+
 
 # --------------------------------------------------------------------------- utilidades
 
@@ -509,6 +516,52 @@ def cmd_hash(args) -> int:
     return 0
 
 
+def cmd_gc(args) -> int:
+    """Borra las imágenes del proyecto que ningún laboratorio referencia.
+
+    Por defecto solo enseña lo que borraría: el borrado real pide `--yes` y
+    exige saber qué hay que conservar.
+    """
+    if _sin_incus():
+        return 3
+    if not args.files and not args.keep:
+        print(
+            "error: pass a topology whose images must be kept, or --keep <alias>. "
+            "Nothing is deleted without knowing what to keep.",
+            file=sys.stderr,
+        )
+        return 2
+
+    catalogo = load_images()
+    keep = set(args.keep or [])
+    for ruta in args.files:
+        topo = _cargar(ruta)
+        for nodo in topo.nodes:
+            try:
+                keep.add(resolve_image(nodo.image, catalogo, where=f"nodes.{nodo.name}.image"))
+            except LabErrors as exc:
+                print(str(exc), file=sys.stderr)
+                return 2
+
+    incus = Incus(_runner())
+    disponibles = incus.imagenes()
+    prefijos = tuple(args.prefix or DEFAULT_GC_PREFIXES)
+    sobrantes = garbage(disponibles, keep, prefixes=prefijos)
+
+    print(f"{len(disponibles)} images, {len(keep)} referenced, {len(sobrantes)} to remove")
+    for nombre in sobrantes:
+        print(f"  {nombre}")
+    if not sobrantes:
+        return 0
+    if not args.yes:
+        print("\nnothing deleted: run again with --yes")
+        return 0
+    for nombre in sobrantes:
+        incus.borrar_imagen(nombre)
+    print(f"\n{len(sobrantes)} images deleted")
+    return 0
+
+
 def cmd_web(args) -> int:
     if args.file:
         topo = _cargar(args.file)
@@ -705,6 +758,18 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("hash", help="sha256 of an answer, to publish exercises without the value")
     p.add_argument("value")
     p.set_defaults(func=cmd_hash)
+
+    p = sub.add_parser("gc", help="remove lab images that nothing references")
+    p.add_argument("files", nargs="*", help="topologies whose node images must be kept")
+    p.add_argument("--keep", action="append", default=[], help="image alias to keep (repeatable)")
+    p.add_argument(
+        "--prefix",
+        action="append",
+        default=None,
+        help="image name prefix managed by the project (repeatable)",
+    )
+    p.add_argument("--yes", action="store_true", help="actually delete, not just list")
+    p.set_defaults(func=cmd_gc)
 
     p = sub.add_parser("web", help="node consoles in the browser")
     p.add_argument("file", nargs="?", help="topology; if omitted, list the Incus instances")
