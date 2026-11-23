@@ -51,10 +51,7 @@ class Check:
         if self.kind == "file":
             return f"{self.params['node']}:{self.params['path']} {self.params['expect']}"
         if self.kind == "ids-alerts":
-            return (
-                f"IDS alerts from {self.params.get('src', 'any')}: "
-                f"{self.params['count']}"
-            )
+            return f"IDS alerts from {self.params.get('src', 'any')}: {self.params['count']}"
         if self.kind == "capture":
             return f"capture of {self.params['net']} contains {self.params['contains']!r}"
         return self.kind
@@ -67,8 +64,8 @@ def _pares(texto: str) -> dict[str, str]:
     puntos dentro de un `assert:` sin comillas rompen el YAML.
     """
     salida: dict[str, str] = {}
-    for trozo in texto.split(","):
-        trozo = trozo.strip()
+    for bruto in texto.split(","):
+        trozo = bruto.strip()
         if not trozo:
             continue
         if "=" in trozo:
@@ -82,7 +79,9 @@ def _pares(texto: str) -> dict[str, str]:
     return salida
 
 
-def _rechazar_parametros(pares: dict[str, str], permitidas: set[str], tipo: str, where: str) -> None:
+def _rechazar_parametros(
+    pares: dict[str, str], permitidas: set[str], tipo: str, where: str
+) -> None:
     """Un parámetro no admitido no debe ignorarse: sería una comprobación que miente."""
     sobran = sorted(set(pares) - permitidas)
     if sobran:
@@ -230,7 +229,16 @@ def run_check(
 
     if check.kind == "http-status":
         res = incus.ejecutar(
-            p["from"], "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5", p["url"]
+            p["from"],
+            "curl",
+            "-s",
+            "-o",
+            "/dev/null",
+            "-w",
+            "%{http_code}",
+            "--max-time",
+            "5",
+            p["url"],
         )
         codigo = _entero(res.out)
         return codigo == p["expect"], f"HTTP {codigo} (expected {p['expect']})"

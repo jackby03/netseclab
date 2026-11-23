@@ -17,7 +17,7 @@ class Issue:
         return f"{self.where}: {self.message}"
 
 
-class LabErrors(Exception):
+class LabErrors(Exception):  # noqa: N818 - agrupa varios errores
     """Conjunto de problemas encontrados al cargar o validar una topología."""
 
     def __init__(self, issues: list[Issue]):

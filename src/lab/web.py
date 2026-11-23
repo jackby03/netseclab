@@ -21,7 +21,7 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Protocol
+from typing import Any, Protocol
 from urllib.parse import parse_qs, urlparse
 
 try:  # pty y termios no existen en Windows
@@ -55,13 +55,13 @@ class PtyTerminal:
     def __init__(self, argv: list[str], filas: int = FILAS, columnas: int = COLUMNAS):
         if not TIENE_PTY:
             raise RuntimeError("las consolas con PTY necesitan Linux; en Windows usa `lab console`")
-        self.master, esclavo = pty.openpty()
+        self.master, esclavo = pty.openpty()  # type: ignore[attr-defined]
         try:
-            import fcntl
+            import fcntl  # noqa: PLC0415 - solo existe en Unix
 
-            fcntl.ioctl(
+            fcntl.ioctl(  # type: ignore[attr-defined]
                 self.master,
-                termios.TIOCSWINSZ,
+                termios.TIOCSWINSZ,  # type: ignore[attr-defined]
                 struct.pack("HHHH", filas, columnas, 0, 0),
             )
         except OSError:  # pragma: no cover - depende de la plataforma
@@ -294,7 +294,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Backspace') d = '\\u007f';
   else if (e.key === 'Tab') d = '\\t';
   else if (e.key === 'Escape') d = '\\u001b';
-  else if (e.ctrlKey && e.key.length === 1) d = String.fromCharCode(e.key.toUpperCase().charCodeAt(0) - 64);
+  else if (e.ctrlKey && e.key.length === 1) d = String.fromCharCode(e.key.toUpperCase().charCodeAt(0) - 64);  // noqa: E501
   else if (e.key.length === 1) d = e.key;
   if (d !== null) { e.preventDefault(); enviar(d); }
 });
@@ -314,7 +314,7 @@ class Manejador(BaseHTTPRequestHandler):
 
     # ---------------------------------------------------------------- ayudas
 
-    def _json(self, datos: dict, codigo: int = 200) -> None:
+    def _json(self, datos: Any, codigo: int = 200) -> None:
         cuerpo = json.dumps(datos).encode("utf-8")
         self.send_response(codigo)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -339,7 +339,7 @@ class Manejador(BaseHTTPRequestHandler):
         if not self.server.token:
             return True
         enviado = (parse_qs(ruta.query).get("token") or [""])[0]
-        return enviado == self.server.token
+        return str(enviado) == self.server.token
 
     # ---------------------------------------------------------------- rutas
 

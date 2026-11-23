@@ -92,38 +92,73 @@ def build_plan(recipe: ImageRecipe, root: Path | None = None) -> list[Step]:
     base = resolve_image(recipe.base, imagenes, where=f"{recipe.name}.base")
     inst = recipe.instancia
     pasos: list[Step] = [
-        Step("limpiar", argv=["incus", "delete", inst, "--force"],
-             note=f"in case a half-finished build of {recipe.name} is left"),
-        Step("crear", argv=["incus", "launch", base, inst, "--profile", PERFIL_NODOS],
-             note=f"{recipe.name} from {base}"),
+        Step(
+            "limpiar",
+            argv=["incus", "delete", inst, "--force"],
+            note=f"in case a half-finished build of {recipe.name} is left",
+        ),
+        Step(
+            "crear",
+            argv=["incus", "launch", base, inst, "--profile", PERFIL_NODOS],
+            note=f"{recipe.name} from {base}",
+        ),
     ]
 
     if recipe.size:
         pasos.append(
-            Step("crear", argv=["incus", "config", "device", "override", inst, "root", f"size={recipe.size}"],
-                 note=f"disk of {recipe.size}")
+            Step(
+                "crear",
+                argv=["incus", "config", "device", "override", inst, "root", f"size={recipe.size}"],
+                note=f"disk of {recipe.size}",
+            )
         )
 
     if recipe.packages:
         lista = " ".join(recipe.packages)
         pasos.append(
-            Step("paquetes", node=inst,
-                 argv=["sh", "-c", ("apt-get update -qq && "
-                       f"DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {lista}")],
-                 note=f"{len(recipe.packages)} packages")
+            Step(
+                "paquetes",
+                node=inst,
+                argv=[
+                    "sh",
+                    "-c",
+                    (
+                        "apt-get update -qq && "
+                        f"DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {lista}"
+                    ),
+                ],
+                note=f"{len(recipe.packages)} packages",
+            )
         )
 
     carpeta = recipe.path.parent
     for src, dst in recipe.assets:
         origen = (carpeta / src).resolve()
         if origen.is_dir():
-            pasos.append(Step("ficheros", kind="tar", node=inst, path=dst, argv=[str(origen)],
-                              note=f"{src}/ -> {dst}"))
+            pasos.append(
+                Step(
+                    "ficheros",
+                    kind="tar",
+                    node=inst,
+                    path=dst,
+                    argv=[str(origen)],
+                    note=f"{src}/ -> {dst}",
+                )
+            )
         elif origen.is_file():
-            pasos.append(Step("ficheros", kind="push", node=inst, path=dst,
-                              content=origen.read_text(encoding="utf-8")))
+            pasos.append(
+                Step(
+                    "ficheros",
+                    kind="push",
+                    node=inst,
+                    path=dst,
+                    content=origen.read_text(encoding="utf-8"),
+                )
+            )
         else:
-            raise FileNotFoundError(f"recipe {recipe.name} points to {origen}, which does not exist")
+            raise FileNotFoundError(
+                f"recipe {recipe.name} points to {origen}, which does not exist"
+            )
 
     if recipe.startup.strip():
         pasos.append(
@@ -131,10 +166,21 @@ def build_plan(recipe: ImageRecipe, root: Path | None = None) -> list[Step]:
         )
 
     pasos += [
-        Step("publicar", argv=["incus", "stop", inst], note="an image is published with the instance stopped"),
-        Step("publicar", argv=["incus", "publish", inst, "--alias", recipe.referencia],
-             note=f"alias {recipe.referencia}"),
-        Step("limpiar", argv=["incus", "delete", inst, "--force"], note="delete the temporary instance"),
+        Step(
+            "publicar",
+            argv=["incus", "stop", inst],
+            note="an image is published with the instance stopped",
+        ),
+        Step(
+            "publicar",
+            argv=["incus", "publish", inst, "--alias", recipe.referencia],
+            note=f"alias {recipe.referencia}",
+        ),
+        Step(
+            "limpiar",
+            argv=["incus", "delete", inst, "--force"],
+            note="delete the temporary instance",
+        ),
     ]
     return pasos
 

@@ -72,9 +72,7 @@ def read_submitted(exercise_id: str, base: Path | None = None) -> dict[str, str]
     return {str(k): str(v) for k, v in datos.items()}
 
 
-def save_submitted(
-    exercise_id: str, answer_id: str, value: str, base: Path | None = None
-) -> Path:
+def save_submitted(exercise_id: str, answer_id: str, value: str, base: Path | None = None) -> Path:
     ruta = store(exercise_id, base)
     datos = read_submitted(exercise_id, base)
     datos[answer_id] = value

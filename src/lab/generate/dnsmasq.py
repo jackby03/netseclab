@@ -45,12 +45,13 @@ def render(topo: Topology, node: Node) -> str:
         if net.addressing != "dhcp":
             continue
         inicio, fin = _rango(net.subnet)
-        lineas.append(
-            f"dhcp-range=set:{net.name},{inicio},{fin},{net.subnet.netmask},12h"
-        )
+        lineas.append(f"dhcp-range=set:{net.name},{inicio},{fin},{net.subnet.netmask},12h")
         if net.gateway:
             lineas.append(f"dhcp-option=tag:{net.name},3,{net.gateway}")
-        lineas.append(f"dhcp-option=tag:{net.name},6,{node.link_to(net.name).ip}")
+        propio = node.link_to(net.name)
+        if propio is None:
+            continue
+        lineas.append(f"dhcp-option=tag:{net.name},6,{propio.ip}")
         if topo.domain:
             lineas.append(f"dhcp-option=tag:{net.name},15,{topo.domain}")
         if net.routes:
@@ -63,12 +64,10 @@ def render(topo: Topology, node: Node) -> str:
     # reservas por MAC: la dirección que el motor ya decidió
     for red in topo.networks.values():
         for otro in topo.nodes:
-            link = otro.link_to(red.name)
-            if link is None:
+            enlace = otro.link_to(red.name)
+            if enlace is None:
                 continue
-            lineas.append(
-                f"dhcp-host={link.mac},{link.ip},{otro.name},12h"
-            )
+            lineas.append(f"dhcp-host={enlace.mac},{enlace.ip},{otro.name},12h")
     lineas.append("")
 
     # registros directos e inversos

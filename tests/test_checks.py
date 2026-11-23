@@ -190,4 +190,3 @@ def test_todos_los_ejercicios_del_repositorio_cargan():
         assert ejercicio.checks, ruta
         # el laboratorio al que apunta tiene que existir y ser válido
         load(ejercicio.lab)
-

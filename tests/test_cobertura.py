@@ -31,9 +31,7 @@ def _incus_json(nombre: str, ips: list[str]) -> str:
                     "network": [
                         {
                             "address": f"eth{idx}",
-                            "addresses": [
-                                {"family": "inet", "address": ip, "scope": "global"}
-                            ],
+                            "addresses": [{"family": "inet", "address": ip, "scope": "global"}],
                         }
                         for idx, ip in enumerate(ips)
                     ]
@@ -44,7 +42,9 @@ def _incus_json(nombre: str, ips: list[str]) -> str:
 
 
 def test_status_muestra_estado_e_ips(monkeypatch, capsys):
-    runner = RecordingRunner({"list --format json": (0, _incus_json("fw", ["10.5.0.254", "10.5.1.254"]), "")})
+    runner = RecordingRunner(
+        {"list --format json": (0, _incus_json("fw", ["10.5.0.254", "10.5.1.254"]), "")}
+    )
     monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     assert cli.main(["status"]) == 0
@@ -98,7 +98,9 @@ def test_snapshot_crea_en_todos_los_nodos(monkeypatch, capsys):
     runner = RecordingRunner({"snapshot list": (0, "", "")})
     monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
-    codigo = cli.main(["snapshot", str(EJEMPLOS / "example.net.yaml"), "--profile", "mini", "--name", "antes"])
+    codigo = cli.main(
+        ["snapshot", str(EJEMPLOS / "example.net.yaml"), "--profile", "mini", "--name", "antes"]
+    )
     assert codigo == 0
     assert runner.contiene("snapshot create fw antes")
     assert runner.contiene("snapshot create dmza antes")
@@ -106,7 +108,9 @@ def test_snapshot_crea_en_todos_los_nodos(monkeypatch, capsys):
 
 
 def test_snapshot_informa_si_falla(monkeypatch, capsys):
-    runner = RecordingRunner({"snapshot list": (0, "", ""), "snapshot create": (1, "", "disco lleno")})
+    runner = RecordingRunner(
+        {"snapshot list": (0, "", ""), "snapshot create": (1, "", "disco lleno")}
+    )
     monkeypatch.setattr(cli, "_runner", lambda: runner)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     assert cli.main(["snapshot", str(EJEMPLOS / "example.net.yaml"), "--profile", "mini"]) == 1
@@ -213,7 +217,9 @@ nodes:
         encoding="utf-8",
     )
     plan = build(load(ruta))
-    dispositivos = [s.command() for s in plan.steps if s.kind == "cmd" and "device add" in s.command()]
+    dispositivos = [
+        s.command() for s in plan.steps if s.kind == "cmd" and "device add" in s.command()
+    ]
     assert any("vlan=42" in d for d in dispositivos)
 
 

@@ -17,7 +17,7 @@ CAJA = RAIZ / "images" / "box"
 
 
 def _sin_comentarios(texto: str) -> str:
-    return "\n".join(l for l in texto.splitlines() if not l.lstrip().startswith("#"))
+    return "\n".join(linea for linea in texto.splitlines() if not linea.lstrip().startswith("#"))
 
 
 def _bloques(texto: str) -> dict[str, int]:
@@ -86,7 +86,9 @@ def test_la_semilla_es_valida():
 def test_el_vmx_no_pide_anidamiento():
     texto = (CAJA / "netseclab.vmx").read_text(encoding="utf-8")
     claves = dict(
-        linea.split("=", 1) for linea in texto.splitlines() if "=" in linea and not linea.startswith("#")
+        linea.split("=", 1)
+        for linea in texto.splitlines()
+        if "=" in linea and not linea.startswith("#")
     )
     claves = {k.strip(): v.strip().strip('"') for k, v in claves.items()}
     assert claves["displayName"] == "netseclab"
@@ -108,7 +110,7 @@ def test_el_empaquetado_lleva_lo_que_espera_el_provisionamiento():
     build = (CAJA / "build.sh").read_text(encoding="utf-8")
     provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
 
-    assert "tar -C \"$RAIZ\"" in build
+    assert 'tar -C "$RAIZ"' in build
     assert "pyproject.toml src lab docs README.md" in build
     assert "tar -C /opt/netseclab -xzf /tmp/netseclab-src.tar.gz" in provision
     # sin --strip-components: el tar no tiene directorio raíz
@@ -133,7 +135,7 @@ def test_el_build_fija_la_version_de_debian():
 def test_el_nombre_de_la_imagen_lleva_el_build():
     build = (CAJA / "build.sh").read_text(encoding="utf-8")
     assert 'if [ "$DEBIAN_BUILD" = "latest" ]' in build
-    assert 'debian-13-genericcloud-amd64-${DEBIAN_BUILD}.qcow2' in build
+    assert "debian-13-genericcloud-amd64-${DEBIAN_BUILD}.qcow2" in build
 
 
 def test_ssh_y_scp_usan_la_opcion_de_puerto_correcta():
@@ -142,7 +144,7 @@ def test_ssh_y_scp_usan_la_opcion_de_puerto_correcta():
     assert 'ssh "${SSH_OPTS[@]}" -p "$PUERTO_SSH"' in build
     assert 'scp "${SSH_OPTS[@]}" -P "$PUERTO_SSH"' in build
     # y el puerto no va dentro del array común
-    assert "-p \"$PUERTO_SSH\")\n" not in build
+    assert '-p "$PUERTO_SSH")\n' not in build
 
 
 def test_el_provisionamiento_no_se_ejecuta_por_stdin():
@@ -157,7 +159,7 @@ def test_el_provisionamiento_no_se_ejecuta_por_stdin():
 def test_el_usuario_entra_en_el_grupo_de_incus():
     """Sin esto, `lab up` no puede hablar con el demonio de Incus."""
     provision = (CAJA / "provision.sh").read_text(encoding="utf-8")
-    assert 'for grupo in incus-admin incus' in provision
+    assert "for grupo in incus-admin incus" in provision
     assert 'usermod -aG "$grupo" lab' in provision
 
 

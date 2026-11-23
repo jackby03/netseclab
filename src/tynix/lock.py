@@ -12,15 +12,15 @@ from pathlib import Path
 
 import yaml
 
-from .errors import InvalidLock
+from .errors import InvalidLockError
 from .manifest import Environment
 
 VERSION = 1
 
 #: Tipos de deriva que puede haber entre un lock y el estado actual.
-AÑADIDO = "added"
-ELIMINADO = "removed"
-CAMBIADO = "changed"
+ADDED = "added"
+REMOVED = "removed"
+CHANGED = "changed"
 
 
 @dataclass(frozen=True)
@@ -32,9 +32,9 @@ class Drift:
     detail: str = ""
 
     def describe(self) -> str:
-        if self.kind == AÑADIDO:
+        if self.kind == ADDED:
             return f"{self.environment}: added since the lock"
-        if self.kind == ELIMINADO:
+        if self.kind == REMOVED:
             return f"{self.environment}: removed since the lock"
         return f"{self.environment}: changed ({self.detail})"
 
@@ -56,32 +56,31 @@ class Lock:
         return {
             "version": self.version,
             "environments": {
-                nombre: entorno.to_dict()
-                for nombre, entorno in sorted(self.environments.items())
+                nombre: entorno.to_dict() for nombre, entorno in sorted(self.environments.items())
             },
         }
 
     def to_yaml(self) -> str:
-        return yaml.safe_dump(self.to_dict(), sort_keys=False, allow_unicode=True, width=100)
+        return str(yaml.safe_dump(self.to_dict(), sort_keys=False, allow_unicode=True, width=100))
 
     @classmethod
     def from_dict(cls, datos: object) -> Lock:
         if not isinstance(datos, dict):
-            raise InvalidLock("lock", "expected a map")
+            raise InvalidLockError("lock", "expected a map")
         version = datos.get("version", VERSION)
         if not isinstance(version, int) or version > VERSION:
-            raise InvalidLock(
+            raise InvalidLockError(
                 "lock.version",
                 f"unsupported version {version!r}; this build understands up to {VERSION}",
             )
         entornos = datos.get("environments") or {}
         if not isinstance(entornos, dict):
-            raise InvalidLock("lock.environments", "expected a map")
+            raise InvalidLockError("lock.environments", "expected a map")
         lock = cls(version=version)
         for nombre, crudo in entornos.items():
             entorno = Environment.from_dict(crudo, f"environments.{nombre}")
             if entorno.name != str(nombre):
-                raise InvalidLock(
+                raise InvalidLockError(
                     f"environments.{nombre}",
                     f"name {entorno.name!r} does not match its key",
                 )
@@ -93,7 +92,7 @@ class Lock:
         try:
             datos = yaml.safe_load(texto) or {}
         except yaml.YAMLError as exc:
-            raise InvalidLock("lock", f"invalid YAML: {exc}") from exc
+            raise InvalidLockError("lock", f"invalid YAML: {exc}") from exc
         return cls.from_dict(datos)
 
     def drift(self, actual: Lock) -> list[Drift]:
@@ -107,9 +106,9 @@ class Lock:
             clavado = self.environments.get(nombre)
             ahora = actual.environments.get(nombre)
             if clavado is None and ahora is not None:
-                salida.append(Drift(nombre, AÑADIDO))
+                salida.append(Drift(nombre, ADDED))
             elif clavado is not None and ahora is None:
-                salida.append(Drift(nombre, ELIMINADO))
+                salida.append(Drift(nombre, REMOVED))
             elif (
                 clavado is not None
                 and ahora is not None
@@ -118,7 +117,7 @@ class Lock:
                 salida.append(
                     Drift(
                         nombre,
-                        CAMBIADO,
+                        CHANGED,
                         f"{clavado.content_hash()[:12]} -> {ahora.content_hash()[:12]}",
                     )
                 )
@@ -128,11 +127,11 @@ class Lock:
 def read_lock(path: str | Path) -> Lock:
     ruta = Path(path)
     if not ruta.exists():
-        raise InvalidLock(str(ruta), "the lock does not exist")
+        raise InvalidLockError(str(ruta), "the lock does not exist")
     try:
         texto = ruta.read_text(encoding="utf-8")
     except OSError as exc:
-        raise InvalidLock(str(ruta), f"cannot read it: {exc}") from exc
+        raise InvalidLockError(str(ruta), f"cannot read it: {exc}") from exc
     return Lock.from_yaml(texto)
 
 

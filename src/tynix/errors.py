@@ -7,7 +7,7 @@ class TynixError(Exception):
     """Cualquier problema de un entorno o de su lock."""
 
 
-class InvalidLock(TynixError):
+class InvalidLockError(TynixError):
     """El lock no se puede leer o no cumple el formato."""
 
     def __init__(self, where: str, detail: str) -> None:

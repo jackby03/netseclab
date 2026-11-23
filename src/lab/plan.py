@@ -103,9 +103,7 @@ class Plan:
                 lineas.append(step.content.rstrip("\n"))
                 lineas.append(marca)
                 destino = shlex.quote(f"{step.node}{step.path}")
-                lineas.append(
-                    f"incus file push {temporal} {destino} --mode={step.mode}"
-                )
+                lineas.append(f"incus file push {temporal} {destino} --mode={step.mode}")
             else:
                 lineas.append(step.command())
         lineas.append("")
@@ -234,8 +232,11 @@ def build(
                 "-c",
                 # El pool se hereda del perfil por defecto: así funciona igual en
                 # una caja con btrfs (nodos copy-on-write) que con directorios.
-                ('POOL="$(incus profile device get default root pool 2>/dev/null || echo default)"; '
-                'incus profile device add netseclab root disk path=/ "pool=$POOL"'),
+                (
+                    'POOL="$(incus profile device get default root pool 2>/dev/null '
+                    '|| echo default)"; '
+                    'incus profile device add netseclab root disk path=/ "pool=$POOL"'
+                ),
             ],
             note="root disk for the nodes (same storage pool as the default profile)",
         )
@@ -343,7 +344,8 @@ def build(
         for nombre in node.toolsets:
             if nombre not in toolsets:
                 raise ValueError(
-                    f"nodes.{node.name}.toolsets: toolset {nombre!r} does not exist in lab/toolsets.yaml"
+                    f"nodes.{node.name}.toolsets: toolset {nombre!r} does not exist "
+                    "in lab/toolsets.yaml"
                 )
             paquetes += toolsets[nombre]
         paquetes += node.packages
@@ -355,11 +357,11 @@ def build(
         # El laboratorio está aislado: si la imagen ya trae el paquete no se toca apt,
         # y si falta algo se avisa en vez de romper el arranque.
         guion = (
-            'faltan=""; for p in ' + lista + '; do '
+            'faltan=""; for p in ' + lista + "; do "
             'dpkg -s "$p" >/dev/null 2>&1 || faltan="$faltan $p"; done; '
             '[ -z "$faltan" ] && exit 0; '
             "apt-get update -qq && DEBIAN_FRONTEND=noninteractive "
-            'apt-get install -y -qq $faltan || '
+            "apt-get install -y -qq $faltan || "
             'echo "AVISO: sin red, no se pudieron instalar:$faltan"'
         )
         steps.append(
@@ -374,56 +376,115 @@ def build(
     # ── ficheros
     for node in nodes:
         pasos = [
-            Step("files", kind="push", node=node.name, path="/etc/hostname",
-                 content=(node.hostname or node.name) + "\n"),
-            Step("files", kind="push", node=node.name, path="/etc/hosts",
-                 content=hosts.render_for(topo, node)),
-            Step("files", kind="push", node=node.name, path=netconf.NET_SCRIPT,
-                 content=netconf.net_script(topo, node), mode="0755"),
-            Step("files", kind="push", node=node.name,
-                 path="/etc/systemd/system/lab-net.service", content=netconf.UNIT_NET),
+            Step(
+                "files",
+                kind="push",
+                node=node.name,
+                path="/etc/hostname",
+                content=(node.hostname or node.name) + "\n",
+            ),
+            Step(
+                "files",
+                kind="push",
+                node=node.name,
+                path="/etc/hosts",
+                content=hosts.render_for(topo, node),
+            ),
+            Step(
+                "files",
+                kind="push",
+                node=node.name,
+                path=netconf.NET_SCRIPT,
+                content=netconf.net_script(topo, node),
+                mode="0755",
+            ),
+            Step(
+                "files",
+                kind="push",
+                node=node.name,
+                path="/etc/systemd/system/lab-net.service",
+                content=netconf.UNIT_NET,
+            ),
         ]
         if node.sysctls:
             pasos.append(
-                Step("files", kind="push", node=node.name,
-                     path="/etc/sysctl.d/90-lab.conf", content=netconf.sysctl_file(node))
+                Step(
+                    "files",
+                    kind="push",
+                    node=node.name,
+                    path="/etc/sysctl.d/90-lab.conf",
+                    content=netconf.sysctl_file(node),
+                )
             )
         arranque = netconf.startup_script(node)
         if arranque:
             pasos += [
-                Step("files", kind="push", node=node.name, path=netconf.STARTUP_SCRIPT,
-                     content=arranque, mode="0755"),
-                Step("files", kind="push", node=node.name,
-                     path="/etc/systemd/system/lab-startup.service", content=netconf.UNIT_STARTUP),
+                Step(
+                    "files",
+                    kind="push",
+                    node=node.name,
+                    path=netconf.STARTUP_SCRIPT,
+                    content=arranque,
+                    mode="0755",
+                ),
+                Step(
+                    "files",
+                    kind="push",
+                    node=node.name,
+                    path="/etc/systemd/system/lab-startup.service",
+                    content=netconf.UNIT_STARTUP,
+                ),
             ]
         if node.dhcp_server or node.dns_server:
             pasos.append(
-                Step("files", kind="push", node=node.name,
-                     path="/etc/dnsmasq.d/lab.conf", content=dnsmasq.render(topo, node))
+                Step(
+                    "files",
+                    kind="push",
+                    node=node.name,
+                    path="/etc/dnsmasq.d/lab.conf",
+                    content=dnsmasq.render(topo, node),
+                )
             )
         if node.firewall and topo.policies:
             pasos.append(
-                Step("files", kind="push", node=node.name, path="/etc/lab/fw.nft",
-                     content=nftables.render(topo, node), mode="0644")
+                Step(
+                    "files",
+                    kind="push",
+                    node=node.name,
+                    path="/etc/lab/fw.nft",
+                    content=nftables.render(topo, node),
+                    mode="0644",
+                )
             )
         if telemetry.es_soc(node, topo):
             pasos.append(
-                Step("files", kind="push", node=node.name,
-                     path="/etc/rsyslog.d/50-lab-server.conf",
-                     content=telemetry.server_config(topo))
+                Step(
+                    "files",
+                    kind="push",
+                    node=node.name,
+                    path="/etc/rsyslog.d/50-lab-server.conf",
+                    content=telemetry.server_config(topo),
+                )
             )
             pasos.append(
-                Step("files", node=node.name,
-                     argv=["mkdir", "-p", "/var/log/lab"],
-                     note="SOC log directory")
+                Step(
+                    "files",
+                    node=node.name,
+                    argv=["mkdir", "-p", "/var/log/lab"],
+                    note="SOC log directory",
+                )
             )
         elif telemetry.necesita(node, topo):
             servidor = topo.node(topo.telemetry.soc or "")
             if servidor is not None:
                 pasos.append(
-                    Step("files", kind="push", node=node.name,
-                         path="/etc/rsyslog.d/50-lab.conf",
-                         content=telemetry.client_config(topo, node, servidor))
+                    Step(
+                        "files",
+                        kind="push",
+                        node=node.name,
+                        path="/etc/rsyslog.d/50-lab.conf",
+                        content=telemetry.client_config(topo, node, servidor),
+                    )
                 )
         for asset in node.assets:
             origen = (base / asset.src).resolve()

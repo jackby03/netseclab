@@ -1,6 +1,7 @@
 """Ciclo de vida del laboratorio: levantar, parar, fotografiar y revertir.
 
-La idempotencia es deliberada: `lab up` dos veces seguidas no debe romper nada, y volver a levantarlo
+La idempotencia es deliberada: `lab up` dos veces seguidas no debe romper nada, y volver a
+levantarlo
 tras un fallo tiene que continuar donde se quedó.
 """
 

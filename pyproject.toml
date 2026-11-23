@@ -4,24 +4,122 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netseclab"
-version = "0.1.0"
+version = "0.2.0.dev0"
 description = "Netsec Laboratory: laboratorio de seguridad en redes ligero, declarativo y reproducible"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "GPL-3.0-or-later" }
-dependencies = ["PyYAML>=6.0"]
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [{ name = "Jack Del Aguila", email = "jackby03@users.noreply.github.com" }]
+keywords = ["security", "networking", "education", "containers", "incus", "lab"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Education",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Education",
+  "Topic :: Security",
+  "Typing :: Typed",
+]
+dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+  "mypy>=1.10",
+  "types-PyYAML>=6.0",
+]
 
 [project.scripts]
 lab = "lab.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/jackby03/netseclab"
+Repository = "https://github.com/jackby03/netseclab"
+Issues = "https://github.com/jackby03/netseclab/issues"
+Documentation = "https://github.com/jackby03/netseclab/tree/main/docs"
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# --------------------------------------------------------------------------- pruebas
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q -p no:cacheprovider"
+
+[tool.coverage.run]
+source = ["src/lab", "src/tynix"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 75
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
+
+# --------------------------------------------------------------------------- estilo
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "PL", "S", "RUF"]
+ignore = [
+  "PLR0913",  # demasiados argumentos: los planes y el CLI los necesitan
+  "PLR2004",  # números mágicos: en pruebas y en puertos es legible tal cual
+  "S603",     # subprocess con lista de argumentos, no shell
+  "S607",     # rutas sin absoluta: el PATH lo resuelve al ejecutar
+]
+# Los parsers de topología y los constructores de plan son tablas de validación
+# con muchos casos lineales: se les da margen, no se les exime.
+[tool.ruff.lint.pylint]
+max-branches = 20
+max-statements = 100
+max-returns = 10
+max-positional-args = 8
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "S101",     # assert: es como se prueba
+  "S105",
+  "S106",
+  "S310",     # urlopen contra 127.0.0.1 en las pruebas de la consola web
+  "PLR2004",
+  "PLR0915",
+  "PLC0415",  # importaciones perezosas para aislar pruebas
+  "E402",     # sys.path antes de importar el paquete en pruebas
+]
+"src/lab/model.py" = ["PLR0912", "PLR0915"]  # validador de la topología
+"src/lab/plan.py" = ["PLR0912"]              # constructor del plan: una fase por bloque
+"src/lab/cli.py" = ["PLR0912", "PLR0911"]    # tabla de subcomandos y de casos
+"src/lab/web.py" = ["E501"]                  # HTML y JavaScript embebidos
+"images/**" = ["S603", "S607"]
+
+# --------------------------------------------------------------------------- tipos
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["lab", "tynix"]
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true

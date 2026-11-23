@@ -9,10 +9,14 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import os
 import shutil
 import sys
 from datetime import datetime
+from glob import glob
 from pathlib import Path
+
+import yaml
 
 from . import __version__
 from .answers import digest, read_submitted, save_submitted, store
@@ -30,8 +34,10 @@ from .engine.capture import plan_capture, run_capture
 from .engine.incus import SNAPSHOT_INICIAL
 from .errors import LabErrors
 from .exercise import load as load_exercise
+from .images import build_plan, listar_imagenes, load_recipe
 from .model import load
 from .plan import Plan, build
+from .web import make_server, serve
 
 # --------------------------------------------------------------------------- utilidades
 
@@ -41,7 +47,7 @@ def _cargar(ruta: str):
         return load(ruta)
     except LabErrors as exc:
         print(str(exc), file=sys.stderr)
-        raise SystemExit(2)
+        raise SystemExit(2) from exc
 
 
 def _plan(args) -> Plan:
@@ -55,13 +61,13 @@ def _plan(args) -> Plan:
             f"Available: {disponibles}",
             file=sys.stderr,
         )
-        raise SystemExit(2)
+        raise SystemExit(2) from None
     except LabErrors as exc:
         print(str(exc), file=sys.stderr)
-        raise SystemExit(2)
+        raise SystemExit(2) from exc
     except (ValueError, FileNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)
-        raise SystemExit(2)
+        raise SystemExit(2) from exc
 
 
 def _runner() -> Runner:
@@ -95,7 +101,7 @@ def _tabla(plan: Plan) -> str:
         )
     lineas += ["", "NODES", f"  {'name':<10} {'image':<22} interfaces"]
     for node in plan.nodes:
-        bocas = ", ".join(f"{l.ifname}={l.ip}/{l.prefix}" for l in node.links)
+        bocas = ", ".join(f"{enlace.ifname}={enlace.ip}/{enlace.prefix}" for enlace in node.links)
         lineas.append(f"  {node.name:<10} {node.image:<22} {bocas}")
     lineas += ["", f"{len(plan.steps)} steps"]
     return "\n".join(lineas)
@@ -115,7 +121,6 @@ def _informe(resultados: list[tuple[str, bool, str]]) -> str:
 
 
 def cmd_validate(args) -> int:
-    from glob import glob
 
     rutas: list[str] = []
     for patron in args.files:
@@ -131,20 +136,15 @@ def cmd_validate(args) -> int:
     fallos = 0
     for ruta in rutas:
         try:
-            import yaml
-
             datos = yaml.safe_load(Path(ruta).read_text(encoding="utf-8")) or {}
-        except Exception:  # noqa: BLE001 - el error real lo da el cargador correspondiente
+        except Exception:
             datos = {}
 
         es_ejercicio = isinstance(datos, dict) and "checks" in datos and "lab" in datos
         try:
             if es_ejercicio:
                 ejercicio = load_exercise(ruta)
-                print(
-                    f"{ruta}: OK - exercise {ejercicio.id} with "
-                    f"{len(ejercicio.checks)} checks"
-                )
+                print(f"{ruta}: OK - exercise {ejercicio.id} with {len(ejercicio.checks)} checks")
                 continue
             topo = load(ruta)
         except LabErrors as exc:
@@ -274,7 +274,6 @@ def cmd_status(args) -> int:
 def cmd_console(args) -> int:
     if _sin_incus():
         return 3
-    import os
 
     instancias = {i.name: i for i in Incus(_runner()).listar()}
     instancia = instancias.get(args.name)
@@ -287,12 +286,11 @@ def cmd_console(args) -> int:
             "Bring the lab up to get an interactive console.",
             file=sys.stderr,
         )
-        os.execvp("incus", ["incus", "console", "--show-log", args.name])
-        return 0  # pragma: no cover
+        os.execvp("incus", ["incus", "console", "--show-log", args.name])  # noqa: S606
+        return 0  # type: ignore[unreachable]  # execvp no vuelve
 
     print(f"Connecting to {args.name}. To leave: Ctrl-a, then q.", file=sys.stderr, flush=True)
-    os.execvp("incus", ["incus", "console", args.name])
-    return 0  # pragma: no cover
+    os.execvp("incus", ["incus", "console", args.name])  # noqa: S606
 
 
 def cmd_snapshot(args) -> int:
@@ -383,7 +381,11 @@ def cmd_check(args) -> int:
                 resultados.append((check.describe(), True, detalle))
             elif check.message:
                 resultados.append(
-                    (check.describe(), False, f"{check.message.strip()}\n          detail: {detalle}")
+                    (
+                        check.describe(),
+                        False,
+                        f"{check.message.strip()}\n          detail: {detalle}",
+                    )
                 )
             else:
                 resultados.append((check.describe(), False, detalle))
@@ -514,7 +516,10 @@ def cmd_web(args) -> int:
             nodos = [n.name for n in topo.resolve_profile(args.profile)]
         except KeyError:
             disponibles = ", ".join(sorted(topo.profiles)) or "(none)"
-            print(f"error: profile {args.profile!r} does not exist. Available: {disponibles}", file=sys.stderr)
+            print(
+                f"error: profile {args.profile!r} does not exist. Available: {disponibles}",
+                file=sys.stderr,
+            )
             return 2
     else:
         if _sin_incus():
@@ -525,11 +530,9 @@ def cmd_web(args) -> int:
         print("error: no nodes to offer", file=sys.stderr)
         return 1
 
-    from .web import make_server, serve
-
     servidor = make_server(nodos, host=args.host, port=args.port, token=args.token)
     host, puerto = servidor.server_address[:2]
-    print(f"consoles at http://{host}:{puerto}  ({len(nodos)} nodes)")
+    print(f"consoles at http://{host!s}:{puerto}  ({len(nodos)} nodes)")
     if args.token:
         print("token enabled: the URL must carry it in the token parameter")
     print("Ctrl-C to stop")
@@ -538,7 +541,6 @@ def cmd_web(args) -> int:
 
 
 def cmd_image(args) -> int:
-    from .images import build_plan, listar_imagenes, load_recipe
 
     if args.accion == "ls":
         if _sin_incus():
@@ -582,8 +584,6 @@ def cmd_image(args) -> int:
 
     if _sin_incus():
         return 3
-
-    from .engine import execute
 
     plan_falso = type("P", (), {"steps": pasos})()
     resultado = execute(plan_falso, _runner(), seguir=args.keep_going)
@@ -711,7 +711,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--profile")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8080)
-    p.add_argument("--token", help="require this token in the URL (recommended if you open it on a network)")
+    p.add_argument(
+        "--token", help="require this token in the URL (recommended if you open it on a network)"
+    )
     p.set_defaults(func=cmd_web)
 
     p = sub.add_parser("images", help="image catalog")
@@ -747,7 +749,7 @@ def main(argv: list[str] | None = None) -> int:
                 stream.reconfigure(encoding="utf-8")
     parser = build_parser()
     args = parser.parse_args(argv)
-    return args.func(args)
+    return int(args.func(args) or 0)
 
 
 if __name__ == "__main__":  # pragma: no cover

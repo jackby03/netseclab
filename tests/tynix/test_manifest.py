@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tynix.errors import InvalidLock
+from tynix.errors import InvalidLockError
 from tynix.manifest import Base, Environment, FileEntry, Package
 
 
@@ -73,12 +73,12 @@ def test_el_manifiesto_va_y_vuelve():
 
 
 def test_un_entorno_sin_base_falla():
-    with pytest.raises(InvalidLock, match="base needs at least 'image'"):
+    with pytest.raises(InvalidLockError, match="base needs at least 'image'"):
         Environment.from_dict({"name": "x"}, "entorno")
 
 
 def test_un_paquete_sin_nombre_falla():
-    with pytest.raises(InvalidLock, match="a package needs at least 'name'"):
+    with pytest.raises(InvalidLockError, match="a package needs at least 'name'"):
         Environment.from_dict(
             {"name": "x", "base": {"image": "debian-13"}, "packages": [{}]}, "entorno"
         )

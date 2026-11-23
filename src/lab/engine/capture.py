@@ -10,13 +10,14 @@ Depende del modo de la red:
 
 from __future__ import annotations
 
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from ..model import Network, Topology
 
-DESTINO_REMOTO = "/tmp/lab-capture.pcap"
-DESTINO_LOCAL = "/tmp/lab-capture.pcap"
+DESTINO_REMOTO = "/tmp/lab-capture.pcap"  # noqa: S108 - ruta dentro del contenedor
+DESTINO_LOCAL = str(Path(tempfile.gettempdir()) / "lab-capture.pcap")
 
 
 @dataclass
