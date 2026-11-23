@@ -31,6 +31,14 @@ Linux normal; la reproducibilidad queda debajo.
 - ✅ **Paquetes de laboratorio**: `lab pack` y `lab unpack`, con verificación de cada fichero antes de
   escribir nada y protección contra rutas fuera del destino.
 
+### Distribución de laboratorios (sin publicar)
+
+- ✅ **Firma de paquetes**: `lab pack --sign` firma el `.labpack` con OpenSSH (`ssh-keygen -Y sign`) y
+  `lab unpack --signer` exige que lo haya firmado una de las claves dadas. Sin GPG, sin llavero y sin
+  autoridad de certificación: la clave pública del profesor es el único dato que hay que repartir.
+- ✅ **Descarga por URL**: `lab unpack https://…/lab.labpack` trae el paquete y su firma, verifica y
+  extrae. La clave pública también puede venir de una URL.
+
 ## Lo que queda
 
 ### 1. Reconstruir el artefacto con la 0.2.0
@@ -53,11 +61,6 @@ informe escrito.
 
 No es prioridad ahora. La infraestructura está lista: `environment:` para el DC, banderas para
 corregir y `labpack` para distribuirlo.
-
-### 3. Firma de paquetes
-
-`labpack` viaja con checksums, que detectan corrupción pero no suplantación. Falta una firma del
-autor (GPG o minisign) y `lab unpack --verify-signature`.
 
 ## Más adelante
 

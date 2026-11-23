@@ -126,6 +126,8 @@ edr-intro.labpack
 ├── lab/exercises/01-edr.yaml    ejercicios
 ├── lab.lock                     entornos clavados, si existe
 └── …                            cualquier otro fichero del escenario
+
+edr-intro.labpack.sig            firma del paquete, si el autor lo firmó
 ```
 
 ```bash
@@ -144,6 +146,7 @@ lab unpack edr-intro.labpack --to labs/edr-intro
 | `--file <ruta>` | Fichero adicional; repetible. |
 | `--exercise <ruta>` | Ejercicio adicional; repetible. |
 | `--lock <ruta>` | Lock que se incluye si existe; por defecto `lab.lock`. |
+| `--sign <clave>` | Firma el paquete con una clave privada de OpenSSH. |
 
 Los ficheros que se empaquetan tienen que estar dentro del directorio de trabajo desde el que se
 ejecuta `lab pack`; sus rutas se guardan relativas a él. El manifiesto lista cada fichero con su
@@ -156,10 +159,71 @@ comprobación de rutas: un miembro que intente escribir fuera del destino se rec
 El paquete no se ejecuta al abrirlo. Solo se verifica y se extrae; los `assets` se copian y los
 `startup` se ejecutan dentro de los nodos cuando el alumno hace `lab up`.
 
+## Firma: de quién es el paquete
+
+Los checksums detectan corrupción, no suplantación: quien manipule un paquete puede recalcular los
+hashes y el resultado cuadra. La firma es lo que ata el paquete a una clave.
+
+Se firma con **OpenSSH** (`ssh-keygen -Y sign`), el mismo mecanismo con el que GitHub firma commits.
+No hace falta GPG, ni llavero, ni autoridad de certificación: la clave pública del profesor es un
+fichero `.pub` de una línea, la misma que ya usa para el SSH.
+
+```bash
+# Profesor: firmar al empaquetar
+lab pack labs/edr-intro/lab.yaml --out edr-intro.labpack --sign ~/.ssh/id_ed25519
+# packed 3 files into edr-intro.labpack
+# signed: edr-intro.labpack.sig
+
+# Alumno: aceptar solo paquetes firmados por esa clave
+lab unpack edr-intro.labpack --to labs/edr-intro --signer profesor.pub
+# signature ok: Good "netseclab" signature for netseclab with ED25519 key SHA256:…
+# 3 files extracted into labs/edr-intro
+```
+
+| Opción de `lab unpack` | Efecto |
+|---|---|
+| `--to <directorio>` | Destino de la extracción; obligatorio. |
+| `--signer <clave.pub>` | Clave pública aceptada, o su URL; repetible. Sin esta opción no se mira la firma. |
+| `--signature <ruta>` | Firma que se comprueba; por defecto `<paquete>.sig`. |
+
+La huella de la clave se publica junto al enunciado, para que el alumno pueda comprobar que el `.pub`
+que le han dado es el que toca:
+
+```bash
+ssh-keygen -lf profesor.pub
+# 256 SHA256:… profesor@universidad (ED25519)
+```
+
+Qué garantiza y qué no:
+
+- **Garantiza** que el paquete lo firmó quien tiene esa clave privada y que no se ha tocado después:
+  la firma cubre el fichero entero, no el manifiesto.
+- **No garantiza** que la clave sea de quien crees: eso lo resuelve el canal por el que te llega la
+  `.pub`. Compárala con la del enunciado del curso o con su huella.
+- **No hay revocación**: si una clave se filtra, hay que repartir otra y volver a firmar.
+- `--signer` es optativo a propósito: sin él, el paquete se verifica con los checksums de siempre. Un
+  paquete sin firma no se rechaza por defecto —quien quiera exigirla la exige—, pero si pides firma y
+  falta, `lab unpack` falla.
+
+## Descargar de una URL
+
+`lab unpack` acepta una ruta o una URL. El bucket del curso no necesita nada especial: un servidor
+estático sirve.
+
+```bash
+lab unpack https://bucket.universidad.edu/labs/edr-intro.labpack \
+  --to labs/edr-intro --signer https://bucket.universidad.edu/labs/profesor.pub
+```
+
+La firma se busca en `<url>.sig`; si está en otro sitio, se pasa con `--signature`. La descarga va a
+un directorio temporal que se borra al terminar, y el paquete se verifica igual que si estuviera en
+disco.
+
 ## Confianza y límites
 
-Los checksums detectan corrupción, no suplantación: un paquete manipulado puede llevar checksums
-nuevos. La **firma de paquetes** (GPG o minisign) y `lab unpack --verify-signature` están pendientes.
+La cadena completa tiene tres eslabones: el manifiesto (integridad de cada fichero), la firma (autoría
+del paquete) y la clave pública (quién es el autor). Los dos primeros los comprueba `lab`; el tercero
+lo comprueba el profesor cuando publica su clave y el alumno cuando decide aceptarla.
 
-Las **herramientas por nodo** (`tools:`) también están pendientes. Hoy las herramientas propias se
-consiguen con una receta de imagen, con un toolset o con `packages:` en el nodo.
+Las **herramientas por nodo** (`tools:`) siguen pendientes. Hoy las herramientas propias se consiguen
+con una receta de imagen, con un toolset o con `packages:` en el nodo.

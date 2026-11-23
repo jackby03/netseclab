@@ -1,5 +1,20 @@
 # Cambios
 
+## Sin publicar
+
+### Añadido
+
+- **Firma de paquetes `.labpack`**: `lab pack --sign <clave privada>` firma el paquete con
+  `ssh-keygen -Y sign` (OpenSSH 8.2 o posterior) y deja la firma en `<paquete>.sig`.
+  `lab unpack --signer <clave.pub>` exige que la haya firmado una de las claves dadas y la comprueba
+  antes de extraer nada. Sin GPG, sin llavero y sin autoridad de certificación: la clave pública del
+  profesor —la misma que usa para el SSH— es el único dato que hay que repartir.
+- **Descarga de paquetes por URL**: `lab unpack https://…/lab.labpack` se trae el paquete a un
+  directorio temporal, verifica y extrae. La firma se busca en `<url>.sig` y la clave pública puede
+  ser también una URL, de modo que un bucket estático sirve como repositorio del curso.
+- Los errores de un `.labpack` se presentan como problemas del paquete («issues in the labpack») y no
+  de la topología.
+
 ## 0.2.0 — entornos reproducibles y distribución
 
 ### Añadido

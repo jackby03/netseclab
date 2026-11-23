@@ -166,4 +166,5 @@ recomendada para entornos reproducibles y para compartirlos con `lab push` y `la
 
 Las imágenes de SOC completas (Wazuh, Loki, Grafana) no están en el repositorio; solo existe el alias
 `soc-lite`. Las imágenes de Windows no están contempladas. La verificación de las imágenes
-distribuidas se apoya en `sha256`; la firma de paquetes está pendiente.
+distribuidas se apoya en `sha256`; el paquete `.labpack` que las acompaña sí se puede firmar con
+`lab pack --sign`. Ver [Compartir laboratorios](../guides/sharing.md).

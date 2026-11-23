@@ -245,7 +245,6 @@ Criterio: la caja y el `CHANGELOG.md` describen la misma versión.
 
 ### 7. Cerrar los pendientes técnicos
 
-- Firma de paquetes `.labpack` (GPG o minisign) y `lab unpack --verify-signature`.
 - Salida a Internet declarada (`lab up --uplink`) y grabación/reproducción de Internet.
 - Herramientas por nodo (`tools:`) con copia y ejecución controlada.
 - Escenario de Samba AD para cubrir Active Directory sin nodos Windows.

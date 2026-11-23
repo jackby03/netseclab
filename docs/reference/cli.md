@@ -355,31 +355,41 @@ lab pack lab/examples/fuzz-evasion.yaml --out fuzz.labpack \
 | `--file <ruta>` | Fichero adicional; repetible. |
 | `--exercise <ruta>` | Ejercicio adicional; repetible. |
 | `--lock <ruta>` | Lock que se incluye si existe; por defecto `lab.lock`. |
+| `--sign <clave>` | Firma el paquete con una clave privada de OpenSSH y deja `<paquete>.sig`. |
 
 ```
 packed 2 files into fuzz.labpack
+signed: fuzz.labpack.sig
 ```
 
-Los ficheros tienen que estar dentro del directorio de trabajo desde el que se ejecuta el comando.
+Los ficheros tienen que estar dentro del directorio de trabajo desde el que se ejecuta el comando. La
+firma necesita `ssh-keygen` (OpenSSH 8.2 o posterior).
 
 ### `unpack`
 
-Verifica un `.labpack` y lo extrae.
+Verifica un `.labpack` y lo extrae. Acepta una ruta o una URL.
 
 ```bash
 lab unpack fuzz.labpack --to /tmp/laboratorio
+lab unpack https://bucket.universidad.edu/labs/fuzz.labpack --to /tmp/laboratorio \
+  --signer https://bucket.universidad.edu/labs/profesor.pub
 ```
 
 | Opción | Efecto |
 |---|---|
 | `--to <directorio>` | Destino de la extracción; obligatorio. |
+| `--signer <clave.pub>` | Clave pública aceptada, o su URL; repetible. |
+| `--signature <ruta>` | Firma que se comprueba; por defecto `<paquete>.sig`. |
 
 ```
+signature ok: Good "netseclab" signature for netseclab with ED25519 key SHA256:…
 2 files extracted into /tmp/laboratorio
 ```
 
 Comprueba formato, versión, hashes y rutas **antes de escribir nada**. Si un fichero no coincide o
-falta, no extrae ninguno y devuelve `2`.
+falta, no extrae ninguno y devuelve `2`. Con `--signer`, la firma se comprueba antes que los hashes y
+un paquete sin firmar o firmado por otra clave también devuelve `2`. Sin `--signer` no se mira la
+firma: el paquete se verifica con sus checksums.
 
 ### `push`
 
