@@ -241,12 +241,12 @@ Medido en la caja construida y probada en QEMU con KVM:
 
 | | Medido |
 |---|---|
-| Artefacto (`.tar.gz`) | **1,9 GB** |
-| VMDK descomprimido | 3,3 GB |
-| Disco de la caja | 12 GB virtuales, **3,1 GB usados** |
-| RAM de la caja | 2 GB (4 GB recomendado para el perfil `full`, 7 nodos) |
+| Artefacto (`.tar.gz`) | **1,92 GiB** (2.056.976.997 bytes) |
+| VMDK descomprimido | 3,58 GiB |
+| Disco de la caja | 12 GB virtuales; **4,2 GB usados con siete nodos y snapshots** |
+| RAM de la caja | 2 GB; siete nodos dejan ~1,3 GB libres |
 | Arranque de un nodo | segundos |
-| Arranque de `lab up` (5 nodos) | ~1 minuto |
+| Arranque de `lab up` (7 nodos) | ~1,5 minutos |
 | NETinVM equivalente | 4,9 GB de artefacto y ~6 GB de RAM |
 
 Las cifras del diseño original (RAM ~900 MB, artefacto ~1,5 GB) se han cumplido salvo el artefacto,
@@ -264,10 +264,10 @@ copy-on-write los nodos comparten bloques con la imagen y cada uno ocupa decenas
 no se puede crear (kernel sin btrfs, por ejemplo), el provisionamiento avisa y sigue con `dir`, pero
 entonces el perfil `full` de siete nodos no cabe.
 
-| Driver | 7 nodos | Artefacto |
+| Driver | 7 nodos + snapshots | Cabe en 12 GB |
 |---|---|---|
-| `dir` | ~8,4 GB | no cabe en 12 GB |
-| `btrfs` (CoW) | ~2–3 GB | cabe con holgura |
+| `dir` | 12 GB (disco lleno) | no |
+| `btrfs` (CoW) | 4,2 GB | sí, con holgura |
 
 La lección: en un laboratorio de contenedores, el espacio en disco no es un detalle de despliegue,
 es un requisito de diseño que se manifiesta en la cara del usuario final.
