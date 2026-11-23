@@ -13,3 +13,7 @@ capture/
 *.qcow2
 *.vmdk
 *.ova
+
+# Directorios temporales del motor si un proceso muere a medias
+netseclab-*/
+probe-*/
