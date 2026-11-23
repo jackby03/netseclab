@@ -391,7 +391,15 @@ def cmd_answer(args) -> int:
     except LabErrors as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    ruta = write_answer(ejercicio, args.text)
+    try:
+        ruta = write_answer(ejercicio, args.text)
+    except OSError as exc:
+        print(
+            f"error: cannot save the answer in {ejercicio.answer_file.parent}: {exc}. "
+            "Check free disk space with `df -h /`.",
+            file=sys.stderr,
+        )
+        return 1
     print(f"answer saved to {ruta}")
     return 0
 

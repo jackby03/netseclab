@@ -85,6 +85,21 @@ if ! incus storage list --format csv 2>/dev/null | grep -q .; then
   exit 1
 fi
 
+echo "== almacenamiento copy-on-write"
+# El pool por defecto (`dir`) copia la imagen completa para cada contenedor:
+# siete nodos de ~1,2 GB llenan un disco de 12 GB. Con btrfs sobre un fichero
+# los nodos comparten bloques con la imagen y ocupan decenas de megas.
+if apt-get install -y -qq btrfs-progs >/dev/null 2>&1; then
+  if incus storage create labpool btrfs source=/var/lib/incus/labpool.img size=8GiB >/dev/null 2>&1; then
+    incus profile device set default root pool=labpool >/dev/null 2>&1 || true
+    echo "  pool btrfs: los nodos comparten bloques con la imagen"
+  else
+    echo "  aviso: no se pudo crear el pool btrfs; se sigue con el de directorios"
+  fi
+else
+  echo "  aviso: no hay btrfs-progs; se sigue con el pool de directorios"
+fi
+
 echo "== perfil para los nodos del laboratorio"
 # El disco raíz lo aporta un perfil. El perfil por defecto trae además una tarjeta
 # en incusbr0 que no queremos en los nodos, así que hacemos uno a medida.

@@ -184,6 +184,20 @@ def test_check_suspendido(monkeypatch, capsys, workdir):
     assert "7 alerts" in salida
 
 
+def test_answer_avisa_si_no_se_puede_escribir(workdir, monkeypatch, capsys):
+    """Disco lleno: mensaje claro en vez de un traceback."""
+    monkeypatch.chdir(workdir)
+
+    def falla(*_args, **_kwargs):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(cli, "write_answer", falla)
+    assert cli.main(["answer", str(EJERCICIO), "algo"]) == 1
+    error = capsys.readouterr().err
+    assert "cannot save the answer" in error
+    assert "free disk space" in error
+
+
 def test_answer_guarda_la_respuesta(workdir, monkeypatch, capsys):
     monkeypatch.chdir(workdir)
     assert cli.main(["answer", str(EJERCICIO), "mi razonamiento"]) == 0
