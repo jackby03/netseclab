@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from tynix import read_lock, write_lock
+from tynix import CacheError, FileCache, open_cache, read_lock, write_lock
 from tynix.errors import InvalidLockError
 from tynix.store import garbage
 
@@ -42,6 +42,7 @@ from .exercise import load as load_exercise
 from .images import build_plan, listar_imagenes, load_recipe
 from .model import load
 from .plan import Plan, build
+from .tmp import carpeta_temporal
 from .web import make_server, serve
 
 # Prefijos de las imágenes que gestiona este proyecto. Lo que no empiece por uno
@@ -519,6 +520,59 @@ def cmd_hash(args) -> int:
     return 0
 
 
+def cmd_push(args) -> int:
+    """Publica una imagen en una caché (el bucket montado o una carpeta compartida)."""
+    if _sin_incus():
+        return 3
+    carpeta = carpeta_temporal()
+    try:
+        fichero = carpeta / "imagen.tar.gz"
+        Incus(_runner()).exportar_imagen(args.alias, str(fichero))
+        cache = FileCache(args.to)
+        entrada = cache.add(args.alias, fichero)
+    except (CacheError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
+    print(f"{entrada.name} -> {cache.root}  sha256:{entrada.sha256[:12]}  {entrada.size} bytes")
+    return 0
+
+
+def cmd_pull(args) -> int:
+    """Trae una imagen de la caché, comprueba su hash y la importa."""
+    if _sin_incus():
+        return 3
+    try:
+        cache = open_cache(args.source)
+        entradas = cache.list()
+    except CacheError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    entrada = next((e for e in entradas if e.name == args.name), None)
+    if entrada is None:
+        disponibles = ", ".join(e.name for e in entradas) or "(empty)"
+        print(
+            f"error: {args.name!r} is not in the cache. Available: {disponibles}",
+            file=sys.stderr,
+        )
+        return 2
+
+    destino_alias = args.ases or args.name
+    carpeta = carpeta_temporal()
+    try:
+        fichero = cache.fetch(entrada, carpeta / "imagen.tar.gz")
+        Incus(_runner()).importar_imagen(str(fichero), destino_alias)
+    except (CacheError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
+    print(f"{entrada.name} imported as {destino_alias} (sha256 verified)")
+    return 0
+
+
 def cmd_lock(args) -> int:
     """Clava los entornos que declara una topología y detecta la deriva."""
     topo = _cargar(args.file)
@@ -789,6 +843,19 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("hash", help="sha256 of an answer, to publish exercises without the value")
     p.add_argument("value")
     p.set_defaults(func=cmd_hash)
+
+    p = sub.add_parser("push", help="publish a lab image into a cache directory")
+    p.add_argument("alias")
+    p.add_argument(
+        "--to", required=True, help="cache directory: the bucket mount or a shared folder"
+    )
+    p.set_defaults(func=cmd_push)
+
+    p = sub.add_parser("pull", help="download and verify an image from a cache")
+    p.add_argument("name", help="image name inside the cache")
+    p.add_argument("--from", dest="source", required=True, help="cache directory or URL")
+    p.add_argument("--as", dest="ases", help="local alias (default: the cache name)")
+    p.set_defaults(func=cmd_pull)
 
     p = sub.add_parser("lock", help="pin the environments declared by a topology")
     p.add_argument("file")

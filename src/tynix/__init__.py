@@ -10,26 +10,35 @@ publicar por separado el día que crezca.
 
 __version__ = "0.0.1"
 
-from .errors import InvalidLockError, TynixError
+from .cache import Cache, CachedImage, FileCache, HttpCache, digest_file, open_cache, verify
+from .errors import CacheError, InvalidLockError, TynixError
 from .lock import Drift, Lock, read_lock, write_lock
 from .manifest import Base, Environment, FileEntry, Package
 from .store import ImageStore, garbage, image_name, missing, referenced
 
 __all__ = [
     "Base",
+    "Cache",
+    "CacheError",
+    "CachedImage",
     "Drift",
     "Environment",
+    "FileCache",
     "FileEntry",
+    "HttpCache",
     "ImageStore",
     "InvalidLockError",
     "Lock",
     "Package",
     "TynixError",
     "__version__",
+    "digest_file",
     "garbage",
     "image_name",
     "missing",
+    "open_cache",
     "read_lock",
     "referenced",
+    "verify",
     "write_lock",
 ]

@@ -7,14 +7,12 @@ tras un fallo tiene que continuar donde se quedó.
 
 from __future__ import annotations
 
-import os
 import shutil
-import tempfile
-import uuid
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
 from ..plan import Plan, Step
+from ..tmp import carpeta_temporal
 from .incus import Incus
 from .runner import Result, Runner
 
@@ -78,32 +76,6 @@ def _push(step: Step, runner: Runner, carpeta: Path, contador: int) -> Result:
     )
 
 
-def _carpeta_temporal() -> Path:
-    """Directorio escribible para los ficheros que se van a copiar a los nodos.
-
-    Se prueban `LAB_TMPDIR`, el temporal del sistema y el directorio actual: en
-    entornos con el temporal restringido (contenedores, sandboxes) los dos
-    primeros pueden no ser escribibles. No se usa `mkdtemp` porque en algunos
-    sandboxes crea un directorio donde luego no se puede escribir.
-    """
-    candidatos = [os.environ.get("LAB_TMPDIR"), tempfile.gettempdir(), os.getcwd()]
-    nombre = f"netseclab-{os.getpid()}-{uuid.uuid4().hex[:8]}"
-    for base in candidatos:
-        if not base:
-            continue
-        carpeta = Path(base) / nombre
-        try:
-            carpeta.mkdir(parents=True, exist_ok=False)
-            prueba = carpeta / "prueba"
-            prueba.write_text("ok", encoding="utf-8")
-            prueba.unlink()
-            return carpeta
-        except OSError:
-            shutil.rmtree(carpeta, ignore_errors=True)
-            continue
-    raise RuntimeError("no writable temporary directory for `lab`")
-
-
 def execute(
     plan: Plan,
     runner: Runner,
@@ -113,7 +85,7 @@ def execute(
     """Ejecuta un plan: comandos y copia de ficheros."""
     resultado = Outcome()
     contador = 0
-    carpeta = _carpeta_temporal()
+    carpeta = carpeta_temporal()
     try:
         for step in plan.steps:
             if on_step:

@@ -23,8 +23,13 @@ Linux normal; la reproducibilidad queda debajo, en cómo se construye y se verif
 - ✅ **Store**: protocolo de almacén, direccionamiento por contenido y recolección de basura con
   `lab gc`.
 - ⏳ **Caché**: `push`/`pull` contra el bucket de la universidad, con verificación y firma opcional.
+- ✅ **Caché**: directorio o URL de solo lectura, con `sha256` por entrada; `lab push` y `lab pull`
+  verifican antes de importar.
 - ✅ **Integración con el laboratorio**: un nodo puede declarar `environment:` y `lab up` resuelve,
   construye y publica la imagen que toca; `lab lock` clava los entornos y detecta la deriva.
+
+`tynix` está completo en sus tres piezas (manifest y lock, almacén, caché). El siguiente paso es
+empaquetar laboratorios sobre él.
 
 **Por qué primero:** la reproducibilidad de verdad es lo que permite que un mismo laboratorio dé los
 mismos resultados en dos universidades, y es la base sobre la que se apoya la distribución.
