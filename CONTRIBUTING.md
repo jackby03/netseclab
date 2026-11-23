@@ -48,8 +48,9 @@ Un fichero en `lab/exercises/`. Tiene que traer:
 lab validate lab/exercises/mi-ejercicio.yaml
 ```
 
-Cuidado con el YAML: un `assert: ids-alerts since: last` sin comillas rompe el fichero. Usa `=`
-en los parámetros (`since=last`) o entrecomilla la línea entera.
+Cuidado con el YAML: un `assert: ids-alerts src=10.0.0.10, count=0` sin comillas rompe el
+fichero por el `: ` de `assert:`. Escribe los parámetros con `=` y entrecomilla la línea entera si
+hace falta.
 
 ### 3. Una receta de imagen
 

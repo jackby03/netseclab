@@ -7,7 +7,7 @@ description: >
 networks:
   ext:
     cidr: 10.20.0.0/24
-    type: nat              # salida a Internet solo si el alumno la pide con --uplink
+    type: nat              # con salida a Internet: el escenario lo declara en el segmento
     mode: hub              # hub: el alumno puede olfatear su propio tráfico
   dmz:
     cidr: 10.20.1.0/24
