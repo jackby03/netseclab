@@ -35,6 +35,16 @@ def test_gitignore_no_deja_entrar_artefactos():
         assert patron in texto
 
 
+def test_los_workflows_son_yaml_valido():
+    """Un dos puntos sin comillas en un `name:` deja el fichero inválido y GitHub no crea ni el
+    trabajo: el flujo falla sin decir por qué."""
+    import yaml
+
+    for ruta in sorted((RAIZ / ".github" / "workflows").glob("*.yml")):
+        datos = yaml.safe_load(ruta.read_text(encoding="utf-8"))
+        assert isinstance(datos, dict) and "jobs" in datos, ruta.name
+
+
 def test_hay_workflow_de_ci():
     ci = RAIZ / ".github" / "workflows" / "ci.yml"
     assert ci.is_file()

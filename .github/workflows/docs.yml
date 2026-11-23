@@ -28,7 +28,8 @@ jobs:
           python-version: "3.12"
       - name: instalar mkdocs
         run: pip install mkdocs-material>=9.5
-      - name: construir (strict: los enlaces rotos fallan)
+      # Un enlace roto falla el build: la documentación tiene la misma red que las pruebas.
+      - name: construir la documentación (strict)
         run: mkdocs build --strict
       - uses: actions/upload-pages-artifact@v3
         with:
