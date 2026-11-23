@@ -1,67 +1,67 @@
 # Plan de trabajo
 
-Estado: **v0.1.0 usable, no completo**. Esto es lo que queda, en orden de dependencia.
+Estado: **v0.2.0 publicada**. El código está completo para lo que se propuso; lo que queda es
+empaquetado, contenido y publicación.
 
-## Hecho (v0.1.0)
+## Hecho
+
+### v0.1.0 — el laboratorio
 
 - Modelo de topología en YAML con validación y mensajes que dicen dónde está el error.
 - Generación de redes, nodos, `nftables`, `dnsmasq`, `/etc/hosts`, red por nodo y telemetría.
 - Ciclo de vida idempotente con snapshots y restauración.
-- Captura por segmento en tres modos: switch, hub y puerto espejo.
-- Ejercicios: hechos del laboratorio y respuestas estrictas con hash, puntuación e informe.
+- Captura por segmento en tres modos: switch, hub y puerto espejo OVS.
+- Ejercicios con hechos del laboratorio y respuestas estrictas con hash, puntuación e informe.
 - Consolas en el navegador.
-- Caja de VMware reproducible: 1,9 GiB, siete nodos en 2 GB de RAM.
-- CI en GitHub: pruebas en tres versiones de Python, validación de contenido y estilo.
+- Caja de VMware reproducible: 1,9 GiB, siete nodos en 2 GB de RAM. **Construida y validada en QEMU
+  y en VMware.**
 
-## Siguiente: `tynix`, entornos reproducibles (en curso)
+### v0.2.0 — tynix y distribución
 
 La idea de Nix aplicada a Incus, sin Nix ni NixOS: los nodos siguen siendo Debian y el alumno ve un
-Linux normal; la reproducibilidad queda debajo, en cómo se construye y se verifica el entorno.
+Linux normal; la reproducibilidad queda debajo.
 
-- ✅ **Manifiesto y lock** (`src/tynix/`): base, paquetes con versión y hash, ficheros y arranque;
-  hash de contenido; `tynix.lock` con detección de deriva.
-- ✅ **Store**: protocolo de almacén, direccionamiento por contenido y recolección de basura con
-  `lab gc`.
-- ⏳ **Caché**: `push`/`pull` contra el bucket de la universidad, con verificación y firma opcional.
+- ✅ **Manifiesto y lock**: base, paquetes con versión y hash, ficheros y arranque; hash de contenido;
+  `tynix.lock` con detección de deriva.
+- ✅ **Store**: protocolo de almacén, direccionamiento por contenido y recolección de basura (`lab gc`).
 - ✅ **Caché**: directorio o URL de solo lectura, con `sha256` por entrada; `lab push` y `lab pull`
   verifican antes de importar.
-- ✅ **Integración con el laboratorio**: un nodo puede declarar `environment:` y `lab up` resuelve,
-  construye y publica la imagen que toca; `lab lock` clava los entornos y detecta la deriva.
+- ✅ **Integración**: un nodo puede declarar `environment:` y `lab up` resuelve, construye y publica
+  la imagen; `lab lock` clava los entornos.
+- ✅ **Paquetes de laboratorio**: `lab pack` y `lab unpack`, con verificación de cada fichero antes de
+  escribir nada y protección contra rutas fuera del destino.
 
-`tynix` está completo en sus tres piezas (manifest y lock, almacén, caché). El siguiente paso es
-empaquetar laboratorios sobre él.
+## Lo que queda
 
-**Por qué primero:** la reproducibilidad de verdad es lo que permite que un mismo laboratorio dé los
-mismos resultados en dos universidades, y es la base sobre la que se apoya la distribución.
+### 1. Reconstruir el artefacto con la 0.2.0
 
-## Después: distribuir laboratorios (`lab pack` / `lab pull`)
+La caja publicada lleva el CLI de la 0.1.0. El código nuevo está en el repositorio, pero el artefacto
+hay que volver a construirlo:
 
-- Formato `.labpack`: topología, ejercicios, assets y manifiesto.
-- Manifiesto con checksums por fichero y versión del formato.
-- `lab pack` produce el paquete; `lab pull` lo instala y verifica.
-- Los ejercicios viajan con hashes, nunca con las respuestas en claro.
-- Firma opcional del paquete por el autor.
+```bash
+make box           # ~15 minutos
+```
 
-**Por qué después de tynix:** un paquete de laboratorio tiene que llevar el lock de sus entornos para
-que quien lo reciba obtenga lo mismo; sin tynix, `labpack` solo sería un zip con buena intención.
+Y después comprobar dentro de la caja lo que aún no se ha ejecutado en real: `lab pack`, `lab unpack`,
+`lab push`, `lab pull`, `lab lock` y `lab gc`.
 
-## Después: el laboratorio de Samba AD
+### 2. El laboratorio de Samba AD
 
-El escenario de intrusión real, con contenedores (sin Windows ni virtualización anidada):
+El escenario de intrusión real con contenedores: controlador de dominio con Samba, SMB anónimo,
+credenciales en ficheros y banderas (usuario anónimo, ID de John Doe, contraseña encontrada), más el
+informe escrito.
 
-- Imagen `dc` con Samba como controlador de dominio.
-- Recursos SMB mal configurados (sesión anónima, permisos amplios).
-- Credenciales en ficheros de usuarios (`pgadmin`, `postgres`).
-- Banderas: el usuario anónimo, el ID de John Doe, la contraseña encontrada.
-- Informe escrito con las preguntas de razonamiento.
+No es prioridad ahora. La infraestructura está lista: `environment:` para el DC, banderas para
+corregir y `labpack` para distribuirlo.
 
-**Por qué después:** necesita `lab pack` para poder distribuirse, y es el contenido que justifica el
-formato.
+### 3. Firma de paquetes
+
+`labpack` viaja con checksums, que detectan corrupción pero no suplantación. Falta una firma del
+autor (GPG o minisign) y `lab unpack --verify-signature`.
 
 ## Más adelante
 
-- **Salida a Internet declarada** (`--uplink`): un escenario puede pedir conexión, y el resto siguen
-  aislados.
+- **Salida a Internet declarada** (`--uplink`): un escenario pide conexión y el resto sigue aislado.
 - **Grabación y reproducción de Internet** para prácticas de OSINT sin depender de la red real.
 - **Herramientas por nodo** (`tools:`) sin pasar por un toolset completo.
 - **Puertos concretos en las políticas** y enlaces punto a punto.
@@ -70,6 +70,11 @@ formato.
 
 ## Ideas aparcadas
 
-- Nodos Windows (requieren virtualización anidada; el AD se cubre con Samba).
-- Ejecutar el laboratorio directamente en macOS o Windows sin VM: descartado por ahora, Incus
-  necesita Linux.
+- **Nodos Windows**: los contenedores de Windows necesitan kernel de Windows; en Linux solo hay VMs
+  dentro de contenedores, con licencia y anidamiento. El AD se cubre con Samba.
+- **VM externa conectada a un segmento**: técnicamente posible (red `bridged` sobre una segunda
+  tarjeta host-only de VMware), pero esa VM queda fuera de la gestión del laboratorio. Si algún día
+  se retoma, el gestor sería un script `vmrun` generado desde la propia topología, no un orquestador
+  nuevo.
+- **Ejecutar el laboratorio directamente en macOS o Windows sin VM**: descartado, Incus necesita
+  Linux.

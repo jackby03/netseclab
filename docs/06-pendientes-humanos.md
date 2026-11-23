@@ -1,32 +1,32 @@
 # Pendientes que solo puede hacer una persona
 
-Todo lo demás está hecho y probado. Esto es lo que necesita manos humanas, en orden de importancia.
+Todo lo demás está hecho y probado. Esto es lo que queda, y por qué necesita manos humanas.
 
 ---
 
-## 1. Construir la caja y comprobarla de verdad
+## 1. Reconstruir la caja con la versión actual
 
-Es lo único grande que no se ha podido ejecutar: este entorno es Windows, sin Incus, sin WSL
-accesible y con `bash` bloqueado. Los scripts están escritos y verificados estructuralmente, pero
-**nunca se han ejecutado**.
-
-```bash
-# en un Linux x86_64 o WSL2, con qemu-system-x86_64 y ~6 GB libres
-make box
-```
-
-Tarda unos 15 minutos. Descomprime `build/box/netseclab-vmware.tar.gz`, abre `netseclab.vmx` en
-VMware y comprueba:
+La caja publicada lleva el CLI de la 0.1.0. El código de la 0.2.0 está en el repositorio, pero el
+artefacto hay que rehacerlo:
 
 ```bash
-lab up /opt/netseclab/lab/examples/example.net.yaml
-lab status
-lab console exta          # dentro: nmap www
-lab reset ...
+make box                     # ~15 minutos en Linux/WSL2 con KVM
 ```
 
-**Qué mirar:** que `lab up` termine sin fallos, que las IPs coincidan con el plan, que `nmap` desde
-`exta` dé 80 abierto / 443 cerrado / resto filtrado, y que `lab reset` deje el laboratorio listo.
+Y después, **dentro de la caja**, ejecutar por primera vez lo que solo se ha probado con el ejecutor
+simulado:
+
+```bash
+lab pack lab/examples/example.net.yaml --out /tmp/ejemplo.labpack
+lab unpack /tmp/ejemplo.labpack --to /tmp/extraido
+lab lock lab/examples/example.net.yaml
+lab gc lab/examples/example.net.yaml
+lab push lab-node-v1 --to /tmp/bucket
+lab pull lab-node-v1 --from /tmp/bucket
+```
+
+**Qué mirar:** que `lab pack` verifique y extraiga, que `lab lock` escriba el lock y `--check` diga
+que está al día, y que `lab gc` no borre nada que se use.
 
 ## 2. Recorrer los seis ejercicios
 
@@ -45,70 +45,53 @@ lab check lab/exercises/06-fuzz-evasion.yaml
 Sospecho de dos: el 05 (endurecimiento) da por hecho que el alumno encuentra el cortafuegos solo, y
 el 06 (evasión) depende de que el umbral de Suricata sea el adecuado con el tiempo de espera real.
 
-## 3. Probar `lab web` con un PTY de verdad
+## 3. Decidir cuándo el repositorio es público
 
-El servidor HTTP está probado con un terminal simulado, pero **el PTY real no se ha abierto nunca**.
-Hay que comprobar que `incus exec -t` se lleva bien con nuestro pseudo-terminal, el redimensionado y
-los caracteres de control:
+Hoy es privado. Antes de abrirlo:
 
-```bash
-lab web /opt/netseclab/lab/examples/example.net.yaml --port 8080
-```
+- revisar el README renderizado en GitHub, que es lo que verá quien llegue;
+- decidir si se publica la caja en el release de GitHub (1,92 GiB, cabe en el límite de 2 GiB) o solo
+  en el bucket de la universidad;
+- si va a Zenodo, conectar el repositorio para que cada release tenga DOI.
 
-Y decidir si se deja en `127.0.0.1` o se abre a la red con `--token`.
+## 4. Publicar la caja
 
-## 4. Medir
+El artefacto no está subido. Elegir dónde:
 
-Los números del diseño (RAM, arranque, tamaño) son estimaciones, no medidas. Con la caja delante:
+- **Release de GitHub**: un clic, pero 1,92 GiB por release y el límite de 2 GiB por fichero.
+- **Bucket universitario**: sin límite, pero hace falta que quien lo descargue sepa la URL.
+- **Ambos**: el bucket como origen y el release como espejo.
 
-```bash
-incus list
-free -m
-time lab up /opt/netseclab/lab/examples/example.net.yaml
-```
-
-Conviene anotarlos en `docs/02-diseno.md` §8, que ahora habla de cifras objetivo.
-
-## 5. Decidir nombre y licencia
-
-Está todo escrito como **netseclab**, con GPL-3.0 para el código y CC-BY-SA-4.0 para la
-documentación. Cambiar el nombre es:
-
-```bash
-grep -rl netseclab --exclude-dir=.git --exclude-dir=build | xargs sed -i 's/netseclab/NOMBRE/g'
-```
-
-Además hay que comprobar que el nombre elegido no esté en uso (PyPI, GitHub, marca registrada).
-
-## 6. Publicar
-
-El repositorio está inicializado y con el historial hecho, pero **no tiene remoto**. Falta:
-
-- crear el repositorio en GitHub/GitLab,
-- `git remote add origin …` y `git push`,
-- decidir si el CI de `.github/workflows/ci.yml` se queda tal cual (asume GitHub Actions),
-- y elegir cómo se distribuye la caja: release de GitHub, Zenodo con DOI, o ambos.
-
-## 7. Revisar el encaje institucional
+## 5. Encaje institucional
 
 Un laboratorio que lanza `nmap` y fuerza bruta tiene implicaciones que no son técnicas:
 
 - ¿Permite la normativa de tu universidad este tipo de prácticas?
-- Si el laboratorio sale a Internet (`--uplink` o una red `nat`), el tráfico de escaneo lleva la IP
-  de la institución. Hoy está desactivado por defecto; conviene que siga así.
-- Si se despliega en un servidor de aula compartido, `lab web` da shells: **token obligatorio** y
-  red de gestión separada.
+- Si un escenario sale a Internet, el tráfico de escaneo lleva la IP de la institución. Hoy está
+  desactivado por defecto; conviene que siga así.
+- Si se despliega en un servidor de aula compartido, `lab web` da shells: **token obligatorio** y red
+  de gestión separada.
 
-## 8. Mantener
+## 6. Mantener
 
 - La versión de Debian de la caja está fijada (`DEBIAN_BUILD`). Cuando salga una nueva, hay que
-  actualizarla, reconstruir y volver a pasar los ejercicios.
-- Las imágenes se descargan de `images.linuxcontainers.org` en la construcción; la caja las cachea,
-  pero un cambio de imagen base puede mover versiones de paquetes y cambiar resultados de `nmap`.
+  actualizarla, reconstruir y **volver a pasar los ejercicios**.
 - Los ejercicios dependen de versiones concretas de herramientas (Suricata, ffuf, Apache). El CI
-  detecta que siguen siendo válidos los ficheros, no que el comportamiento sea el mismo.
+  detecta que los ficheros son válidos, no que el comportamiento sea el mismo.
+- Cada versión: etiqueta, entrada en `CHANGELOG.md` y release con sus notas. La convención está en
+  `CONTRIBUTING.md`.
 
 ---
+
+## Lo que ya está hecho y no hace falta repetir
+
+- **La caja se construyó y se validó** en QEMU y en VMware: siete nodos, `nmap` correcto, `lab reset`,
+  `lab capture`, `lab check` 4/4, credenciales y aviso de `Ctrl-a q`.
+- **Las medidas están tomadas**: 1,92 GiB el artefacto, 4,2 GB de disco con siete nodos y snapshots,
+  ~1,3 GB de RAM libres con todo levantado.
+- **El nombre y la licencia están decididos**: `netseclab`, GPL-3.0 para el código y CC-BY-SA-4.0 para
+  documentación y ejercicios.
+- **El repositorio existe y tiene CI**: privado por ahora, con siete trabajos en verde.
 
 ## Lo que **no** hace falta hacer
 
