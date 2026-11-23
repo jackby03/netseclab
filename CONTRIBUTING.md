@@ -159,28 +159,22 @@ Tareas abiertas del proyecto. Cada una indica el comando o el resultado que la c
 
 ### 1. Reconstruir la caja con la versión actual
 
-La caja publicada lleva el CLI de la 0.1.0. El artefacto tiene que rehacerse con el código actual:
+La caja publicada lleva el CLI de la 0.1.0. El artefacto tiene que rehacerse con el código actual y
+pasar las comprobaciones dentro de la VM:
 
 ```bash
 make box
+WORK=build/box tools/probar-caja.sh     # la arranca en QEMU y comprueba dentro
 ```
 
-Después, dentro de la caja y por primera vez con Incus real, comprobar las órdenes que hasta ahora
-solo se han probado con el ejecutor simulado:
+`tools/probar-caja.sh` usa un overlay desechable, así que el disco que se publica queda intacto. Las
+comprobaciones viven en `tools/comprobar-caja.sh`: `lab up` con siete nodos, `lab down` y otra vez
+`lab up`, `nmap` desde `exta` (80 abierto, 443 cerrado, 22 filtrado), el ejercicio de reconocimiento,
+captura, snapshot/reset, paquetes firmados, `lab lock`, `lab gc`, `lab push`/`lab pull` y la consola
+web con y sin token.
 
-```bash
-lab pack lab/examples/example.net.yaml --out /tmp/ejemplo.labpack
-lab unpack /tmp/ejemplo.labpack --to /tmp/extraido
-lab lock lab/examples/example.net.yaml
-lab lock lab/examples/example.net.yaml --check
-lab gc lab/examples/example.net.yaml
-lab push lab-node-v1 --to /tmp/bucket
-lab pull lab-node-v1 --from /tmp/bucket
-```
-
-Criterio: `lab pack` verifica y extrae, `lab lock` escribe el lock y `--check` confirma que no hay
-deriva, `lab gc` no borra imágenes en uso y `lab push`/`lab pull` verifican el `sha256` antes de
-importar.
+Criterio: el guion termina con `0 fallos`. Después, las pruebas con interfaz de verdad (VMware) están
+en [tools/pruebas-humanas.md](tools/pruebas-humanas.md).
 
 ### 2. Revisar los seis ejercicios con criterio docente
 
