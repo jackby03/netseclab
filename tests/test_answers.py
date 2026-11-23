@@ -31,7 +31,7 @@ answers:
   - id: ip
     question: "¿Qué IP tenía en el segmento de administración?"
     points: 5
-    hash: {digest('10.5.0.10')}
+    hash: {digest("10.5.0.10")}
   - id: usuario
     question: "¿Qué usuario permite sesión anónima?"
     points: 10
@@ -67,9 +67,7 @@ def test_una_respuesta_acepta_solo_su_valor():
 
 
 def test_las_variantes_se_declaran_y_no_se_adivinan():
-    respuesta = Answer(
-        id="x", question="?", hashes=[digest("10.5.0.10"), digest("10.5.0.10/24")]
-    )
+    respuesta = Answer(id="x", question="?", hashes=[digest("10.5.0.10"), digest("10.5.0.10/24")])
     assert respuesta.accepts("10.5.0.10/24")  # variante declarada
     assert not respuesta.accepts("10.5.0.10/32")  # no declarada: no se adivina
 
@@ -111,8 +109,8 @@ def test_dos_respuestas_con_el_mismo_id_fallan(workdir):
 title: X
 lab: {LAB}
 answers:
-  - {{ id: a, question: "¿?", hash: {digest('uno')} }}
-  - {{ id: a, question: "¿?", hash: {digest('otro')} }}
+  - {{ id: a, question: "¿?", hash: {digest("uno")} }}
+  - {{ id: a, question: "¿?", hash: {digest("otro")} }}
 """,
     )
     with pytest.raises(LabErrors, match="duplicated"):
@@ -127,7 +125,7 @@ def test_la_pregunta_puede_estar_en_cualquier_idioma(workdir):
 title: X
 lab: {LAB}
 answers:
-  - {{ id: a, question: "Why does the firewall reject 443?", hash: {digest('reject')} }}
+  - {{ id: a, question: "Why does the firewall reject 443?", hash: {digest("reject")} }}
 """,
     )
     ejercicio = load(ruta)

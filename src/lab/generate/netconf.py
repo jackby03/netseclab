@@ -58,7 +58,11 @@ def net_script(topo: Topology, node: Node) -> str:
             lineas.append(f"ip route replace {destino} via {via} dev {link.ifname}")
 
     if node.sysctls:
-        lineas += ["", "# sysctls por nodo", "sysctl -q -w " + " ".join(f"{k}={v}" for k, v in node.sysctls.items())]
+        lineas += [
+            "",
+            "# sysctls por nodo",
+            "sysctl -q -w " + " ".join(f"{k}={v}" for k, v in node.sysctls.items()),
+        ]
 
     return "\n".join(lineas) + "\n"
 
@@ -74,7 +78,7 @@ def startup_script(node: Node) -> str | None:
     ]
     for clave, valor in node.env.items():
         cabecera.append(f"export {clave}={valor!r}")
-    return "\n".join(cabecera + [node.startup, ""])
+    return "\n".join([*cabecera, node.startup, ""])
 
 
 UNIT_NET = """[Unit]

@@ -31,7 +31,7 @@ def client_config(topo: Topology, node: Node, servidor: Node) -> str:
     soc = _direccion_soc(topo, servidor)
     lineas = [
         "# Generado por netseclab: reenvío de logs al SOC.",
-        "module(load=\"imfile\")",
+        'module(load="imfile")',
     ]
     for fuente in topo.telemetry.sources:
         for ruta in FICHEROS.get(fuente, []):
@@ -64,7 +64,7 @@ def server_config(topo: Topology) -> str:
             'ruleset(name="lab") {',
             '  template(name="porNodo" type="string"',
             '           string="/var/log/lab/%HOSTNAME%/%$YEAR%-%$MONTH%-%$DAY%.log")',
-            "  action(type=\"omfile\" dynaFile=\"porNodo\")",
+            '  action(type="omfile" dynaFile="porNodo")',
             "}",
             "",
             f"# retención prevista: {topo.telemetry.retention}",

@@ -121,13 +121,21 @@ GitHub sale de ahí.
 ### Antes de integrar
 
 ```bash
-pytest                      # 175 pruebas
-ruff check src tests        # estilo
+make check                  # ruff + mypy + 190 pruebas
+make cov                    # cobertura (mínimo 75 %, configurado en pyproject)
 lab validate "lab/examples/*.yaml"
 lab validate "lab/exercises/*.yaml"
 ```
 
 El CI hace lo mismo en tres versiones de Python; si pasa en local, pasa allí.
+
+### Qué se exige al código
+
+- **Tipos**: `mypy` sin errores. El proyecto está anotado.
+- **Estilo**: `ruff check` y `ruff format --check` sin cambios. Formatear es `make lint`.
+- **Cobertura**: no bajar del 75 %.
+- **Pruebas**: ninguna se borra para que pase algo. Si un cambio hace fallar una prueba, o el cambio
+  está mal o la prueba estaba mal: se arregla una de las dos, no se silencia.
 
 ### Qué no se versiona
 

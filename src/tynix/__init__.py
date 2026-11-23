@@ -10,7 +10,7 @@ publicar por separado el día que crezca.
 
 __version__ = "0.0.1"
 
-from .errors import InvalidLock, TynixError
+from .errors import InvalidLockError, TynixError
 from .lock import Drift, Lock, read_lock, write_lock
 from .manifest import Base, Environment, FileEntry, Package
 
@@ -19,7 +19,7 @@ __all__ = [
     "Drift",
     "Environment",
     "FileEntry",
-    "InvalidLock",
+    "InvalidLockError",
     "Lock",
     "Package",
     "TynixError",

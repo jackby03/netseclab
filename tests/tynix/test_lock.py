@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tynix.errors import InvalidLock
+from tynix.errors import InvalidLockError
 from tynix.lock import Lock, read_lock, write_lock
 from tynix.manifest import Base, Environment, Package
 
@@ -61,12 +61,12 @@ def test_un_entorno_nuevo_y_uno_que_desaparece():
 
 
 def test_una_version_de_formato_desconocida_falla():
-    with pytest.raises(InvalidLock, match="unsupported version"):
+    with pytest.raises(InvalidLockError, match="unsupported version"):
         Lock.from_dict({"version": 99, "environments": {}})
 
 
 def test_el_nombre_debe_coincidir_con_su_clave():
-    with pytest.raises(InvalidLock, match="does not match its key"):
+    with pytest.raises(InvalidLockError, match="does not match its key"):
         Lock.from_dict(
             {
                 "version": 1,
@@ -76,5 +76,5 @@ def test_el_nombre_debe_coincidir_con_su_clave():
 
 
 def test_un_lock_que_no_existe_falla(tmp_path):
-    with pytest.raises(InvalidLock, match="does not exist"):
+    with pytest.raises(InvalidLockError, match="does not exist"):
         read_lock(tmp_path / "no-hay.lock")

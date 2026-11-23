@@ -14,6 +14,17 @@
   - Lockfile (`tynix.lock`) con detección de deriva: qué entornos se han añadido, eliminado o cambiado
     desde que se clavaron.
   - 15 pruebas propias, sin dependencias de Incus ni del resto del laboratorio.
+- **Calidad de código**: `mypy` en modo estricto sobre `src/` (sin errores), `ruff` con reglas de
+  seguridad, simplificación y modernización, `ruff format` como formateador, y **cobertura con umbral
+  del 75 %** (actual: 81 %). Todo ello en el CI junto a las pruebas.
+- `Makefile` con `test`, `lint`, `types`, `cov` y `check`.
+- `.editorconfig`, `SECURITY.md` y un índice en `docs/`.
+
+### Corregido
+
+- Tipos opcionales en `dnsmasq` que podían reventar con un nodo sin enlace en una red.
+- `lab web` imprimía la dirección del servidor sin normalizar (`bytes` en algunos casos).
+- Código muerto e importaciones perezosas innecesarias detectadas por el análisis estático.
 
 ## 0.1.0 — primer PoC funcional
 

@@ -39,7 +39,9 @@ def test_render_json(capsys):
 
 def test_render_table(capsys):
     assert (
-        cli.main(["render", str(EJEMPLOS / "example.net.yaml"), "--profile", "mini", "--format", "table"])
+        cli.main(
+            ["render", str(EJEMPLOS / "example.net.yaml"), "--profile", "mini", "--format", "table"]
+        )
         == 0
     )
     salida = capsys.readouterr().out
@@ -147,7 +149,16 @@ def test_capture_se_ejecuta(monkeypatch, capsys, workdir):
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/incus")
     destino = workdir / "ext.pcap"
     codigo = cli.main(
-        ["capture", str(EJEMPLOS / "fuzz-evasion.yaml"), "--net", "ext", "--seconds", "3", "--out", str(destino)]
+        [
+            "capture",
+            str(EJEMPLOS / "fuzz-evasion.yaml"),
+            "--net",
+            "ext",
+            "--seconds",
+            "3",
+            "--out",
+            str(destino),
+        ]
     )
     assert codigo == 0
     assert runner.contiene("tcpdump")
@@ -219,7 +230,10 @@ def test_down_con_perfil_inexistente_no_revienta(capsys):
 
 
 def test_down_dry_run_lista_las_instancias(capsys):
-    assert cli.main(["down", str(EJEMPLOS / "example.net.yaml"), "--profile", "mini", "--dry-run"]) == 0
+    assert (
+        cli.main(["down", str(EJEMPLOS / "example.net.yaml"), "--profile", "mini", "--dry-run"])
+        == 0
+    )
     salida = capsys.readouterr().out
     assert "incus stop fw" in salida
     assert "incus stop dmza" in salida

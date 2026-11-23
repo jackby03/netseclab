@@ -55,13 +55,13 @@ def render(topo: Topology, node: Node) -> str:
         "  chain input {",
         "    type filter hook input priority filter; policy accept;",
         "    ct state established,related accept",
-        "    iifname \"lo\" accept",
+        '    iifname "lo" accept',
         "  }",
         "",
         "  chain forward {",
         f"    type filter hook forward priority filter; policy {politica};",
         "    ct state established,related accept",
-        "    iifname \"lo\" accept",
+        '    iifname "lo" accept',
     ]
     lineas += reglas
     lineas += ["  }", "}", ""]

@@ -12,6 +12,8 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 
+from .errors import InvalidLockError
+
 
 def _canonico(datos: object) -> str:
     """JSON estable: claves ordenadas y sin espacios, para que el hash no baile."""
@@ -34,10 +36,8 @@ class Base:
 
     @classmethod
     def from_dict(cls, datos: object, where: str) -> Base:
-        from .errors import InvalidLock
-
         if not isinstance(datos, dict) or not datos.get("image"):
-            raise InvalidLock(where, "base needs at least 'image'")
+            raise InvalidLockError(where, "base needs at least 'image'")
         return cls(image=str(datos["image"]), fingerprint=str(datos.get("fingerprint", "") or ""))
 
 
@@ -54,10 +54,8 @@ class Package:
 
     @classmethod
     def from_dict(cls, datos: object, where: str) -> Package:
-        from .errors import InvalidLock
-
         if not isinstance(datos, dict) or not datos.get("name"):
-            raise InvalidLock(where, "a package needs at least 'name'")
+            raise InvalidLockError(where, "a package needs at least 'name'")
         return cls(
             name=str(datos["name"]),
             version=str(datos.get("version", "") or ""),
@@ -77,10 +75,8 @@ class FileEntry:
 
     @classmethod
     def from_dict(cls, datos: object, where: str) -> FileEntry:
-        from .errors import InvalidLock
-
         if not isinstance(datos, dict) or not datos.get("path"):
-            raise InvalidLock(where, "a file needs at least 'path'")
+            raise InvalidLockError(where, "a file needs at least 'path'")
         return cls(path=str(datos["path"]), sha256=str(datos.get("sha256", "") or ""))
 
 
@@ -122,23 +118,21 @@ class Environment:
 
     @classmethod
     def from_dict(cls, datos: object, where: str) -> Environment:
-        from .errors import InvalidLock
-
         if not isinstance(datos, dict):
-            raise InvalidLock(where, "expected a map")
+            raise InvalidLockError(where, "expected a map")
         nombre = datos.get("name")
         if not nombre:
-            raise InvalidLock(where, "missing 'name'")
+            raise InvalidLockError(where, "missing 'name'")
         base = Base.from_dict(datos.get("base"), f"{where}.base")
         paquetes = datos.get("packages") or []
         if not isinstance(paquetes, list):
-            raise InvalidLock(f"{where}.packages", "expected a list")
+            raise InvalidLockError(f"{where}.packages", "expected a list")
         ficheros = datos.get("files") or []
         if not isinstance(ficheros, list):
-            raise InvalidLock(f"{where}.files", "expected a list")
+            raise InvalidLockError(f"{where}.files", "expected a list")
         arranque = datos.get("startup") or []
         if not isinstance(arranque, list):
-            raise InvalidLock(f"{where}.startup", "expected a list")
+            raise InvalidLockError(f"{where}.startup", "expected a list")
         return cls(
             name=str(nombre),
             base=base,

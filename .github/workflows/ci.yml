@@ -6,6 +6,7 @@ on:
 
 jobs:
   pruebas:
+    name: pruebas (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,7 +24,35 @@ jobs:
       - name: pruebas
         run: pytest -q
 
+  cobertura:
+    name: cobertura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+
+      # El umbral mínimo está en pyproject.toml (fail_under)
+      - name: pruebas con cobertura
+        run: pytest --cov
+
+  tipos:
+    name: tipos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+
+      - name: mypy
+        run: mypy
+
   contenido:
+    name: contenido
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -51,12 +80,17 @@ jobs:
           done
 
   estilo:
+    name: estilo
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install ruff
-      - name: ruff
+      - run: pip install -e ".[dev]"
+
+      - name: ruff check
         run: ruff check src tests
+
+      - name: ruff format
+        run: ruff format --check src tests

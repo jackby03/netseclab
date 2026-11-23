@@ -46,7 +46,9 @@ def _get(servidor, ruta: str):
 def _post(servidor, ruta: str, datos: dict | None = None):
     cuerpo = json.dumps(datos).encode() if datos is not None else b""
     peticion = urllib.request.Request(
-        _url(servidor, ruta), data=cuerpo, method="POST",
+        _url(servidor, ruta),
+        data=cuerpo,
+        method="POST",
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(peticion, timeout=5) as r:
@@ -113,7 +115,9 @@ def test_ruta_desconocida(servidor):
 
 
 def test_token_protege_la_api():
-    srv = make_server(["fw"], host="127.0.0.1", port=0, token="secreto", fabrica=lambda _n: FakeTerminal())
+    srv = make_server(
+        ["fw"], host="127.0.0.1", port=0, token="secreto", fabrica=lambda _n: FakeTerminal()
+    )
     hilo = threading.Thread(target=srv.serve_forever, daemon=True)
     hilo.start()
     try:

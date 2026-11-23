@@ -9,22 +9,23 @@ from __future__ import annotations
 import ipaddress
 import re
 from dataclasses import dataclass, field
+from difflib import get_close_matches
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import yaml
 
-from .errors import LabErrors, Scope
+from .errors import Issue, LabErrors, Scope
 
-NAME_RE = re.compile(r"^[a-z][a-z0-9-]{0,30}$")          # nodos y redes
+NAME_RE = re.compile(r"^[a-z][a-z0-9-]{0,30}$")  # nodos y redes
 LAB_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}$")  # nombre del laboratorio (admite puntos)
 
 NETWORK_TYPES = ("isolated", "nat", "bridged")
 NETWORK_MODES = ("switch", "hub", "mirror")
 ADDRESSING = ("auto", "dhcp")
 
-FIRST_HOST = 10          # las direcciones se reparten a partir de .10, como en el original
-RESERVED = {1, 254}      # .1 gateway, .254 router
+FIRST_HOST = 10  # las direcciones se reparten a partir de .10, como en el original
+RESERVED = {1, 254}  # .1 gateway, .254 router
 MAC_PREFIX = "ca:fe:00:00"
 
 
@@ -42,13 +43,34 @@ def _as_dict(value: Any, where: str, sc: Scope) -> dict:
 
 CLAVES = {
     "topologia": {
-        "version", "name", "description", "domain", "defaults",
-        "networks", "nodes", "profiles", "policies", "telemetry",
+        "version",
+        "name",
+        "description",
+        "domain",
+        "defaults",
+        "networks",
+        "nodes",
+        "profiles",
+        "policies",
+        "telemetry",
     },
     "red": {"id", "cidr", "type", "mode", "addressing", "gateway", "routes", "parent"},
     "nodo": {
-        "name", "image", "links", "toolsets", "packages", "assets", "startup", "sysctls",
-        "aliases", "resources", "dhcp_server", "dns_server", "firewall", "hostname", "env",
+        "name",
+        "image",
+        "links",
+        "toolsets",
+        "packages",
+        "assets",
+        "startup",
+        "sysctls",
+        "aliases",
+        "resources",
+        "dhcp_server",
+        "dns_server",
+        "firewall",
+        "hostname",
+        "env",
         "privileged",
     },
     "enlace": {"net", "ip", "mac", "vlan", "default", "gateway", "routes", "ifname"},
@@ -70,8 +92,6 @@ def _rechazar_desconocidas(data: dict, tipo: str, where: str, sc: Scope) -> None
 
 
 def _mas_parecida(clave: str, candidatas) -> str | None:
-    from difflib import get_close_matches
-
     encontradas = get_close_matches(clave, list(candidatas), n=1, cutoff=0.6)
     return encontradas[0] if encontradas else None
 
@@ -87,18 +107,26 @@ def _as_list(value: Any, where: str, sc: Scope) -> list:
 
 def _parse_cidr(text: str, where: str, sc: Scope) -> ipaddress.IPv4Network | None:
     try:
-        return ipaddress.ip_network(str(text), strict=False)
+        red = ipaddress.ip_network(str(text), strict=False)
     except ValueError as exc:
         sc.add(where, f"invalid CIDR ({exc})")
         return None
+    if not isinstance(red, ipaddress.IPv4Network):
+        sc.add(where, "only IPv4 networks are supported")
+        return None
+    return red
 
 
 def _parse_ip(text: str, where: str, sc: Scope) -> ipaddress.IPv4Address | None:
     try:
-        return ipaddress.ip_address(str(text))
+        direccion = ipaddress.ip_address(str(text))
     except ValueError as exc:
         sc.add(where, f"invalid IP address ({exc})")
         return None
+    if not isinstance(direccion, ipaddress.IPv4Address):
+        sc.add(where, "only IPv4 addresses are supported")
+        return None
+    return direccion
 
 
 def _parse_routes(value: Any, where: str, sc: Scope) -> list[tuple[str, str]]:
@@ -142,7 +170,8 @@ class Network:
 
     @property
     def subnet(self) -> ipaddress.IPv4Network:
-        return ipaddress.ip_network(self.cidr, strict=False)
+        # el CIDR se valida al cargar la topología: aquí ya es IPv4
+        return cast(ipaddress.IPv4Network, ipaddress.ip_network(self.cidr, strict=False))
 
     @property
     def prefix(self) -> int:
@@ -218,7 +247,7 @@ class Node:
     @property
     def address(self) -> str:
         """Primera dirección del nodo, la que se publica en DNS."""
-        return self.links[0].ip if self.links else ""
+        return (self.links[0].ip or "") if self.links else ""
 
 
 @dataclass
@@ -314,20 +343,14 @@ def load(path: str | Path) -> Topology:
     """Carga y valida una topología desde un fichero YAML."""
     path = Path(path)
     if not path.exists():
-        raise LabErrors([__issue(str(path), "file does not exist")])
+        raise LabErrors([Issue(str(path), "file does not exist")])
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
-        raise LabErrors([__issue(str(path), f"invalid YAML: {exc}")]) from exc
+        raise LabErrors([Issue(str(path), f"invalid YAML: {exc}")]) from exc
     if not isinstance(raw, dict):
-        raise LabErrors([__issue(str(path), "the document must be a map at the root")])
+        raise LabErrors([Issue(str(path), "the document must be a map at the root")])
     return from_dict(raw, path=path)
-
-
-def __issue(where: str, message: str):
-    from .errors import Issue
-
-    return Issue(where, message)
 
 
 def from_dict(raw: dict, path: Path | None = None) -> Topology:
@@ -468,7 +491,9 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
             if not dst:
                 sc.add(f"{a_where}.dst", "required")
             if src and dst:
-                assets.append(Asset(src=str(src), dst=str(dst), mode=str(a_data.get("mode", "0644"))))
+                assets.append(
+                    Asset(src=str(src), dst=str(dst), mode=str(a_data.get("mode", "0644")))
+                )
 
         node = Node(
             name=node_name,
@@ -492,10 +517,9 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
         links_raw = _as_list(data.get("links"), f"{where}.links", sc)
         if not links_raw:
             sc.add(f"{where}.links", "a node needs at least one link")
-        for l_idx, link_raw in enumerate(links_raw):
+        for l_idx, enlace in enumerate(links_raw):
             l_where = f"{where}.links[{l_idx}]"
-            if isinstance(link_raw, str):
-                link_raw = {"net": link_raw}
+            link_raw = {"net": enlace} if isinstance(enlace, str) else enlace
             l_data = _as_dict(link_raw, l_where, sc)
             _rechazar_desconocidas(l_data, "enlace", l_where, sc)
             net_name = l_data.get("net")
