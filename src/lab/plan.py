@@ -263,6 +263,16 @@ def build(
                 note=f"node {node.name} from {node.image}",
             )
         )
+        # `incus launch` no arranca una instancia que ya existe: tras un `lab down`, un `lab up`
+        # se saltaba el arranque y el primer `incus exec` fallaba con «Instance is not running».
+        # `incus start` sobre algo que ya está en marcha da «already running», que se ignora.
+        steps.append(
+            Step(
+                "node",
+                argv=["incus", "start", node.name],
+                note=f"{node.name}: start it if it was stopped",
+            )
+        )
         if node.resources.disk:
             steps.append(
                 Step(
@@ -546,6 +556,23 @@ def build(
                     note=f"{node.name}: log forwarding",
                 )
             )
+
+    # ── los nodos terminan de arrancar
+    # `lab up` no debe terminar mientras systemd sigue lanzando servicios dentro de los nodos: el
+    # primer `nmap` o `lab check` llegaría a una web que todavía no escucha y el puerto saldría
+    # filtrado. Se espera a que no queden trabajos pendientes, con tope para no colgarse.
+    for node in nodes:
+        espera = (
+            'for _ in $(seq 1 20); do [ -z "$(systemctl list-jobs --no-legend)" ] && exit 0; '
+            "sleep 1; done; exit 0"
+        )
+        steps.append(
+            Step(
+                "wait",
+                argv=["incus", "exec", node.name, "--", "sh", "-c", espera],
+                note=f"{node.name}: wait until it finishes booting",
+            )
+        )
 
     # ── ajustes de conmutación
     # Manipular puertos del bridge y el demonio de OVS necesita root; el usuario

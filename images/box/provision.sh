@@ -170,6 +170,7 @@ if ! imagen_existe "lab-node-v1"; then
      echo "user1:netseclab" | chpasswd; \
      sed -i "s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/" /etc/ssh/sshd_config; \
      systemctl enable ssh; \
+     systemctl mask systemd-networkd-wait-online.service; \
      echo "netseclab node - to leave the console: Ctrl-a then q" >> /etc/issue'
 fi
 
@@ -190,8 +191,8 @@ if ! imagen_existe "lab-attacker-v1"; then
 fi
 
 echo "== paquetes de los toolsets, para poder instalarlos sin Internet"
-TOOLSETS="nmap masscan dnsutils whatweb whois curl ffuf gobuster nikto dirb jq \
-tcpdump tshark bettercap mitmproxy tcpflow hydra john medusa openssl sslscan \
+TOOLSETS="nmap masscan dnsutils whatweb whois curl ffuf gobuster dirb jq \
+tcpdump tshark bettercap tcpflow hydra john medusa openssl sslscan \
 auditd aide fail2ban lynis rkhunter hping3 python3-scapy iperf3 tcpreplay dsniff \
 sqlmap wfuzz apache2 php libapache2-mod-php nftables suricata"
 apt-get install -y -qq --download-only ${TOOLSETS} || true

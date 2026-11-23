@@ -531,7 +531,7 @@ lab toolsets
 blue        5 packages  auditd aide fail2ban lynis rkhunter
 crack       3 packages  hydra john medusa
 recon       6 packages  nmap masscan dnsutils whatweb whois curl
-sniff       5 packages  tcpdump tshark bettercap mitmproxy tcpflow
+sniff       4 packages  tcpdump tshark bettercap tcpflow
 tls         3 packages  openssl sslscan certbot
 traffic     5 packages  hping3 scapy iperf3 tcpreplay dsniff
 webapp      4 packages  sqlmap wfuzz whatweb curl

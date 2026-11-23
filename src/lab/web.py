@@ -305,6 +305,20 @@ cargarNodos();
 </body></html>
 """
 
+# Lo que se enseña a quien llega sin el token. No lleva nada del laboratorio: ni nombres de nodo ni
+# el token, que es lo que se protegería.
+PAGINA_SIN_TOKEN = (
+    """<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>netseclab — token</title>
+<style>body{font-family:system-ui,sans-serif;margin:4em auto;max-width:32em;padding:0 1em}</style>
+</head><body>
+<h1>Falta el token</h1>
+<p>Esta consola se abrió con <code>lab web --token</code>: añade <code>?token=…</code> a la dirección
+que te dio el comando.</p>
+</body></html>
+"""
+).encode()
+
 
 class Manejador(BaseHTTPRequestHandler):
     server: Servidor
@@ -345,8 +359,13 @@ class Manejador(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         ruta = urlparse(self.path)
-        if ruta.path.startswith("/api/") and not self._autorizado(ruta):
-            self._json({"error": "token no válido"}, codigo=401)
+        if not self._autorizado(ruta):
+            # La página también exige el token: lleva el token dentro para que el navegador pueda
+            # llamar a la API, así que servirla sin comprobarlo lo publicaba a quien preguntara.
+            if ruta.path.startswith("/api/"):
+                self._json({"error": "token no válido"}, codigo=401)
+            else:
+                self._texto(PAGINA_SIN_TOKEN, codigo=401)
             return
         if ruta.path in ("/", "/index.html"):
             pagina = PAGINA.replace("__TOKEN__", self.server.token or "")
@@ -375,7 +394,7 @@ class Manejador(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         ruta = urlparse(self.path)
-        if ruta.path.startswith("/api/") and not self._autorizado(ruta):
+        if not self._autorizado(ruta):
             self._json({"error": "token no válido"}, codigo=401)
             return
         if ruta.path == "/api/open":

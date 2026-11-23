@@ -32,7 +32,7 @@ def test_fases_en_orden(plan):
     for step in plan.steps:
         if not fases or fases[-1] != step.phase:
             fases.append(step.phase)
-    assert fases == ["perfil", "network", "node", "packages", "files", "enable", "post"]
+    assert fases == ["perfil", "network", "node", "packages", "files", "enable", "wait", "post"]
 
 
 def test_se_recarga_systemd_antes_de_activar(plan):
@@ -181,3 +181,17 @@ def test_un_toolset_desconocido_falla(example_net):
     with pytest.raises(ValueError, match="does not exist"):
         build(example_net)
     example_net.node("exta").toolsets = ["recon", "sniff"]
+
+
+def test_el_plan_arranca_los_nodos_que_ya_existen(plan):
+    """`lab up` después de `lab down` fallaba: launch no arranca una instancia parada."""
+    comandos = [" ".join(paso.exec_argv()) for paso in plan.steps if paso.kind != "push"]
+    for nodo in plan.nodes:
+        assert f"incus start {nodo.name}" in comandos
+
+
+def test_el_plan_espera_a_que_los_nodos_termine_de_arrancar(plan):
+    """Sin la espera, el primer nmap llega a una web que todavía no escucha."""
+    esperas = [paso for paso in plan.steps if paso.phase == "wait"]
+    assert len(esperas) == len(plan.nodes)
+    assert all("systemctl list-jobs" in paso.command() for paso in esperas)
