@@ -18,34 +18,39 @@ tocan la imagen.
 
 ## 2. El paquete de laboratorio (`labpack`)
 
+**Implementado**: `lab pack` y `lab unpack`.
+
 ```
 edr-intro.labpack            (tar.gz)
-├── lab.yaml                 # la topología, tal cual
-├── exercises/
-│   └── 01-edr.yaml          # uno o varios ejercicios
-├── assets/                  # ficheros del escenario: webs, reglas, configuraciones
-├── tools/                   # opcional: binarios estáticos, .deb, scripts de instalación
-│   ├── rustscan             # un binario estático, sin dependencias
-│   └── install.sh           # se ejecuta en los nodos que diga lab.yaml
-├── README.md                # qué enseña y cómo se usa
-└── SHA256SUMS               # integridad
+├── labpack.json             # manifiesto: formato, versión y sha256 de cada fichero
+├── lab/examples/lab.yaml    # la topología, tal cual
+├── lab/exercises/01-edr.yaml # uno o varios ejercicios
+├── lab.lock                 # los entornos clavados con tynix, si existen
+└── ...                      # cualquier otro fichero del escenario
 ```
 
-Nada de esto requiere privilegios, ni Docker, ni compilar.
+Al abrirlo se verifica **todo** antes de escribir nada: si un byte no cuadra con el manifiesto, el
+paquete no se extrae. Además se rechazan las rutas que intenten escribir fuera del destino, para que
+un paquete malicioso no pueda tocar el sistema de quien lo abre.
+
+Un detalle que da la reproducibilidad: el `.labpack` lleva el `lab.lock` de sus entornos, así que
+quien lo recibe puede comprobar con `lab lock --check` que tiene exactamente lo que el autor clavó.
 
 ## 3. Órdenes
 
 ```bash
-# alumno
-lab pull https://ejemplo.org/labs/edr-intro.labpack
-lab up   labs/edr-intro/lab.yaml
-lab check labs/edr-intro/exercises/01-edr.yaml
-
 # profesor, para publicar
-lab pack labs/edr-intro          # genera edr-intro.labpack con su SHA256SUMS
+lab lock labs/edr-intro/lab.yaml                    # clava los entornos
+lab pack labs/edr-intro/lab.yaml --out edr-intro.labpack \
+  --exercise labs/edr-intro/exercises/01-edr.yaml
+
+# alumno
+lab unpack edr-intro.labpack --to labs/edr-intro     # verifica y extrae
+lab up labs/edr-intro/lab.yaml
+lab check labs/edr-intro/exercises/01-edr.yaml
 ```
 
-`lab pull` descarga, **verifica el SHA-256** y descomprime en `labs/<nombre>/`. Nada más.
+`lab unpack` **verifica el sha256 de cada fichero** y no extrae nada si algo no cuadra. Nada más.
 
 ## 4. Herramientas propias
 
