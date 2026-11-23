@@ -1,46 +1,59 @@
-# Netsec Laboratory (`netseclab`)
+# netseclab
 
-Laboratorio de **seguridad en redes** para enseñar, practicar y evaluar. Ligero, declarativo y
-reproducible.
+[![ci](https://github.com/jackby03/netseclab/actions/workflows/ci.yml/badge.svg)](https://github.com/jackby03/netseclab/actions/workflows/ci.yml)
+[![docs](https://github.com/jackby03/netseclab/actions/workflows/docs.yml/badge.svg)](https://jackby03.github.io/netseclab/)
+[![licencia](https://img.shields.io/badge/licencia-GPL--3.0--or--later-blue.svg)](LICENSE)
+[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](pyproject.toml)
 
-Una VM (la «caja») con Debian mínimo y [Incus](https://linuxcontainers.org/incus/) dentro. Los nodos
-del laboratorio son **contenedores de sistema** con `systemd`, `sshd`, `apache`, `nftables`, `nmap`,
-`tcpdump` y las herramientas que hagan falta para atacar y defenderse: se comportan como ordenadores,
-arrancan en segundos y caben siete en 2 GB de RAM.
+Laboratorio de **seguridad en redes** para enseñar, practicar y evaluar. Se describe en YAML, se
+levanta en una sola máquina virtual y se restaura en segundos.
 
-- Se describe en un **YAML** y de ahí salen redes, IPs, MACs, DNS, cortafuegos y pruebas.
-- `lab reset` devuelve el laboratorio al estado inicial en segundos.
-- Los ejercicios **se corrigen solos**: valores concretos comparados por hash, más un informe escrito
-  que corrige el profesor.
+## Qué es
 
-## Origen
+Una VM —la *caja*— con Debian mínimo e [Incus](https://linuxcontainers.org/incus/) dentro. Los nodos
+del laboratorio son **contenedores de sistema** que se comportan como ordenadores: `systemd`, `sshd`,
+`apache`, `nftables`, `nmap` y las herramientas que haga falta para atacar y defenderse. Siete nodos
+caben en 2 GB de RAM y arrancan en segundos, sin virtualización anidada.
 
-`netseclab` nace inspirado por **[NETinVM](https://informatica.uv.es/~carlos/docencia/netinvm/)** de
-Carlos Pérez, de la Universitat de València: la idea de un laboratorio de redes y seguridad que cabe
-en un ordenador y se puede levantar en clase.
+Un laboratorio es un fichero:
 
-Este proyecto **no es un fork ni un reempaquetado**: está escrito desde cero con una visión más
-completa —los laboratorios son datos, las prácticas se corrigen solas, los escenarios se pueden
-distribuir— y con decisiones técnicas distintas para que sea ligero y reproducible en cualquier
-portátil. El análisis del original y lo que se ha querido conservar está en
-[docs/00-analisis-netinvm.md](docs/00-analisis-netinvm.md), y el diseño en
-[docs/02-diseno.md](docs/02-diseno.md).
+```yaml
+name: example.net
+domain: example.net
 
-## Estado
+networks:
+  ext: { cidr: 10.5.0.0/24, type: isolated, mode: hub }
+  dmz: { cidr: 10.5.1.0/24, type: isolated, mode: mirror }
+  int: { cidr: 10.5.2.0/24, type: isolated, mode: switch }
 
-**v0.1.0 — usable, no completo.** Funciona de punta a punta y está validado dentro de la caja: se
-levanta un escenario de siete nodos, se comprueba, se responde, se corrige y se vuelve atrás.
+nodes:
+  - name: fw
+    links: [ { net: ext, ip: 10.5.0.254 }, { net: dmz, ip: 10.5.1.254 },
+             { net: int, ip: 10.5.2.254 } ]
+  - name: dmza
+    image: web
+    links: [ { net: dmz, ip: 10.5.1.10 } ]
+```
 
-- ✅ Modelo de topología, generación, ciclo de vida, snapshots, captura por segmento, telemetría.
-- ✅ Ejercicios con respuestas estrictas, puntuación e informe.
-- ✅ Caja de VMware: 1,9 GiB, Debian fijado, imágenes de nodo con las herramientas.
-- ✅ **175 pruebas** y CI en GitHub.
-- ⏳ `lab pack` / `lab pull` (distribuir laboratorios), laboratorio de Samba AD, salida a Internet
-  declarada.
+De ahí salen las redes, las IPs, las MACs, el DNS, el cortafuegos y las pruebas. `lab up` lo levanta,
+`lab reset` vuelve al estado inicial y `lab check` corrige los ejercicios.
 
-El plan está en [ROADMAP.md](ROADMAP.md) y los cambios en [CHANGELOG.md](CHANGELOG.md).
+## Características
 
-## La caja
+- **Declarativo.** Topologías en YAML con validación y errores que dicen dónde está el problema.
+- **Reproducible.** Base Debian fijada, imágenes con checksum y entornos direccionados por contenido
+  con tynix, que toma las ideas de Nix sin usar Nix.
+- **Captura por segmento.** Tres modos de conmutación: *switch*, *hub* (se ve todo el tráfico) y
+  *mirror* (puerto espejo sobre Open vSwitch).
+- **Corrección automática.** Hechos del laboratorio comprobables y respuestas estrictas comparadas por
+  hash, con puntuación y plantilla de informe.
+- **Distribución.** Laboratorios empaquetados en `.labpack` con checksums y caché de imágenes para un
+  bucket o un directorio compartido.
+- **Ligero.** 1,9 GiB de artefacto; siete nodos en 2 GB de RAM.
+
+## Empezar
+
+### La caja
 
 La forma prevista de usarlo es la VM ya construida: se descomprime, se abre en VMware y se entra con
 `lab` / `netseclab`.
@@ -48,123 +61,58 @@ La forma prevista de usarlo es la VM ya construida: se descomprime, se abre en V
 ```bash
 tar -xzf netseclab-vmware.tar.gz
 # abrir netseclab.vmx en VMware
-```
 
-Dentro:
-
-```bash
-lab up /opt/netseclab/lab/examples/example.net.yaml   # siete nodos, ~1,5 minutos
+lab up /opt/netseclab/lab/examples/example.net.yaml
 lab status
 lab console exta
 ```
 
-Credenciales de los nodos: `root` / `netseclab` y `user1` / `netseclab`. Para salir de una consola:
-`Ctrl-a` y luego `q`.
+Las credenciales de los nodos son `root` / `netseclab` y `user1` / `netseclab`. Para salir de una
+consola: `Ctrl-a` y luego `q`.
 
-## Uso desde el repositorio
+### Desde el repositorio
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest
+make check
 ```
 
-`lab up` de verdad requiere estar **dentro de la caja** (la VM con Incus). En cualquier otro sitio,
-`render` y `--dry-run` funcionan igual: el plan es texto.
+`lab up` necesita estar dentro de la caja. Fuera de ella, `render` y `--dry-run` funcionan igual: el
+plan es texto.
 
 ```bash
 lab validate lab/examples/example.net.yaml
 lab render lab/examples/example.net.yaml --format table
-lab render lab/examples/fuzz-evasion.yaml --format shell   # el plan completo, en shell
+lab up lab/examples/example.net.yaml --dry-run
 ```
 
-### Ciclo de vida (dentro de la caja)
+## Documentación
 
-```bash
-lab up lab/examples/fuzz-evasion.yaml        # levanta y crea el snapshot "initial"
-lab status                                   # estado e IPs de cada nodo
-lab console www                              # consola interactiva
-lab capture lab/examples/fuzz-evasion.yaml --net dmz --seconds 20
-lab snapshot lab/examples/fuzz-evasion.yaml --name antes-del-ataque
-lab reset lab/examples/fuzz-evasion.yaml     # vuelve a "initial" en segundos
-lab check lab/exercises/06-fuzz-evasion.yaml
-lab gc lab/examples/example.net.yaml --yes   # borra imágenes que nadie usa
-lab push lab-node-v1 --to /mnt/bucket        # publica una imagen en la caché
-lab pull lab-node-v1 --from https://bucket.universidad.edu/tynix
-lab pack lab/examples/example.net.yaml --out ejemplo.labpack
-lab unpack ejemplo.labpack --to /tmp/laboratorio
-lab web lab/examples/fuzz-evasion.yaml       # consolas por navegador en :8080
-```
+La documentación completa está en **[jackby03.github.io/netseclab](https://jackby03.github.io/netseclab/)**
+y en [`docs/`](docs/index.md):
 
-### Ejercicios
+- [Empezar](docs/getting-started.md) — de cero a un laboratorio funcionando.
+- [Conceptos](docs/concepts/taxonomy.md) — qué es la caja, un nodo, un escenario.
+- [Guías](docs/guides/operating.md) — uso diario, ejercicios y distribución.
+- [Referencia](docs/reference/topology.md) — formato de topología y comandos del CLI.
+- [Diseño](docs/design/origins.md) — de dónde viene y por qué está hecho así.
 
-Un ejercicio tiene dos partes: lo que **comprueba la máquina** y lo que **evalúa la persona**.
+## Estado
 
-```yaml
-# Un valor concreto que el alumno tiene que extraer. Se guarda el hash, no el valor.
-answers:
-  - id: usuario-anonimo
-    kind: flag
-    points: 10
-    question: "¿Qué usuario del servicio permite acceso sin contraseña?"
-    where: "mira los recursos compartidos"
-    hash: 7d793037a0760186574b0282f2f435e7...
+Versión **0.2.0**, usable. El plan de trabajo está en [ROADMAP.md](ROADMAP.md) y los cambios en
+[CHANGELOG.md](CHANGELOG.md). Las convenciones de contribución están en [CONTRIBUTING.md](CONTRIBUTING.md).
 
-# Preguntas abiertas para el informe escrito, que corrige el profesor
-report:
-  - "¿Cómo descubriste el recurso compartido?"
-```
+## Origen
 
-```bash
-lab check lab/exercises/01-reconocimiento.yaml      # 0/1 answers - 0/5 points
-lab answer lab/exercises/01-reconocimiento.yaml puerto-cerrado "443"
-lab check lab/exercises/01-reconocimiento.yaml      # 1/1 answers - 5/5 points
-lab report lab/exercises/01-reconocimiento.yaml --out informe.md
-```
-
-Las comprobaciones también pueden verificar hechos del laboratorio: `port-state`, `reachable`,
-`http-status`, `file`, `ids-alerts` y `capture`. El formato completo está en
-[docs/09-ejercicios.md](docs/09-ejercicios.md).
-
-### Ejercicios incluidos
-
-| Ejercicio | Laboratorio | Qué enseña |
-|---|---|---|
-| `01-reconocimiento` | `example.net` | Puerto abierto, cerrado y filtrado |
-| `02-conectividad` | `example.net` | Deducir la política del cortafuegos desde los flujos |
-| `03-captura` | `example.net` | Sniffing: por qué un hub se ve y un switch no |
-| `04-pivoteo` | `pivot` | Movimiento lateral a una red sin ruta directa |
-| `05-endurecimiento` | `example.net` | Cerrar la superficie de un servidor expuesto |
-| `06-fuzz-evasion` | `fuzz-evasion` | Descubrimiento de directorios evadiendo el IDS |
-
-## Estructura
-
-```
-lab/examples/     topologías de ejemplo (datos, no código)
-lab/exercises/    ejercicios
-lab/images.yaml   catálogo de imágenes
-lab/toolsets.yaml conjuntos de herramientas
-src/lab/          CLI, modelo, generadores y plan
-src/lab/engine/   ejecución sobre Incus, snapshots, captura
-src/lab/checks.py hechos del laboratorio que se comprueban solos
-src/lab/answers.py respuestas estrictas comparadas por hash
-src/lab/web.py    consolas por navegador (PTY + HTTP, sin dependencias)
-images/box/       construcción de la caja de VMware
-images/recipes/   recetas de imágenes propias
-docs/             análisis, diseño, formato, guía, ejercicios y límites
-tests/            175 pruebas
-```
-
-## Contribuir
-
-Convenciones de commits, ramas y versiones en [CONTRIBUTING.md](CONTRIBUTING.md). Los cambios se
-documentan en [CHANGELOG.md](CHANGELOG.md) con cada versión.
+Nace inspirado por **[NETinVM](https://informatica.uv.es/~carlos/docencia/netinvm/)** de Carlos Pérez
+(Universitat de València): un laboratorio de redes y seguridad que cabe en un ordenador. Este proyecto
+no es un fork ni un reempaquetado, sino una implementación desde cero con otro enfoque: los
+laboratorios son datos, la corrección es automática y los escenarios se pueden distribuir. El detalle
+está en [docs/design/origins.md](docs/design/origins.md).
 
 ## Licencia
 
-- **Código**: GPL-3.0-or-later. El texto completo está en [LICENSE](LICENSE).
-- **Documentación y ejercicios**: CC-BY-SA-4.0. El texto completo está en
+- **Código**: GPL-3.0-or-later. Texto completo en [LICENSE](LICENSE).
+- **Documentación y ejercicios**: CC-BY-SA-4.0. Texto completo en
   [LICENSES/CC-BY-SA-4.0.txt](LICENSES/CC-BY-SA-4.0.txt).
-
-Se puede usar, copiar, modificar y redistribuir; si se distribuye una versión modificada, tiene que
-seguir siendo libre.

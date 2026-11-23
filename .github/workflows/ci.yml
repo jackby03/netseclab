@@ -94,3 +94,19 @@ jobs:
 
       - name: ruff format
         run: ruff format --check src tests
+
+  documentacion:
+    name: documentacion
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: instalar mkdocs
+        run: pip install "mkdocs-material>=9.5"
+
+      # strict: un enlace interno roto falla el trabajo
+      - name: construir la documentación
+        run: mkdocs build --strict

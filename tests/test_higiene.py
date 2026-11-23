@@ -48,19 +48,19 @@ def test_hay_documentacion_de_contribucion_y_cambios():
     assert (RAIZ / "CHANGELOG.md").is_file()
 
 
-def test_hay_lista_de_pendientes_humanos():
-    doc = RAIZ / "docs" / "06-pendientes-humanos.md"
-    assert doc.is_file()
-    texto = doc.read_text(encoding="utf-8")
-    # lo que de verdad no se puede hacer sin una persona
+def test_el_trabajo_pendiente_esta_documentado():
+    """Lo que queda por hacer vive en CONTRIBUTING, no en la documentación."""
+    contrib = RAIZ / "CONTRIBUTING.md"
+    assert contrib.is_file()
+    texto = contrib.read_text(encoding="utf-8")
+    assert "Trabajo pendiente" in texto
     assert "make box" in texto
-    assert "ejercicios" in texto
 
 
 def test_la_licencia_esta_completa():
     licencia = RAIZ / "LICENSE"
     if not licencia.exists():
-        pytest.skip("LICENSE todavía no está; ver docs/06-pendientes-humanos.md")
+        pytest.skip("LICENSE todavía no está")
     texto = licencia.read_text(encoding="utf-8")
     assert "GNU GENERAL PUBLIC LICENSE" in texto
     assert "Version 3, 29 June 2007" in texto
