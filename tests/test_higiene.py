@@ -54,7 +54,7 @@ def test_hay_lista_de_pendientes_humanos():
     texto = doc.read_text(encoding="utf-8")
     # lo que de verdad no se puede hacer sin una persona
     assert "make box" in texto
-    assert "PTY" in texto
+    assert "ejercicios" in texto
 
 
 def test_la_licencia_esta_completa():
