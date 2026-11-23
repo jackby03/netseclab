@@ -13,17 +13,23 @@ __version__ = "0.0.1"
 from .errors import InvalidLockError, TynixError
 from .lock import Drift, Lock, read_lock, write_lock
 from .manifest import Base, Environment, FileEntry, Package
+from .store import ImageStore, garbage, image_name, missing, referenced
 
 __all__ = [
     "Base",
     "Drift",
     "Environment",
     "FileEntry",
+    "ImageStore",
     "InvalidLockError",
     "Lock",
     "Package",
     "TynixError",
     "__version__",
+    "garbage",
+    "image_name",
+    "missing",
     "read_lock",
+    "referenced",
     "write_lock",
 ]

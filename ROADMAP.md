@@ -20,7 +20,8 @@ Linux normal; la reproducibilidad queda debajo, en cómo se construye y se verif
 
 - ✅ **Manifiesto y lock** (`src/tynix/`): base, paquetes con versión y hash, ficheros y arranque;
   hash de contenido; `tynix.lock` con detección de deriva.
-- ⏳ **Store**: imágenes direccionadas por hash y recolección de basura (`lab gc`).
+- ✅ **Store**: protocolo de almacén, direccionamiento por contenido y recolección de basura con
+  `lab gc`.
 - ⏳ **Caché**: `push`/`pull` contra el bucket de la universidad, con verificación y firma opcional.
 - ⏳ **Integración con el laboratorio**: que un nodo pida un entorno y `lab up` resuelva, construya o
   descargue la imagen que toca.

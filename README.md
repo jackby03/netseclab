@@ -88,6 +88,7 @@ lab capture lab/examples/fuzz-evasion.yaml --net dmz --seconds 20
 lab snapshot lab/examples/fuzz-evasion.yaml --name antes-del-ataque
 lab reset lab/examples/fuzz-evasion.yaml     # vuelve a "initial" en segundos
 lab check lab/exercises/06-fuzz-evasion.yaml
+lab gc lab/examples/example.net.yaml --yes   # borra imágenes que nadie usa
 lab web lab/examples/fuzz-evasion.yaml       # consolas por navegador en :8080
 ```
 

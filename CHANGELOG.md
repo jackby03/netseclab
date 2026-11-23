@@ -4,6 +4,12 @@
 
 ### Añadido
 
+- **`lab gc`**: borra las imágenes que ningún laboratorio referencia. Solo toca los prefijos del
+  proyecto (`lab-` y `lab/`), nunca las imágenes del sistema; sin `--yes` solo enseña lo que
+  borraría, y exige saber qué conservar (una topología o `--keep`).
+- **`tynix.store`**: la capa de almacén de tynix, con el protocolo mínimo que necesita (`names`,
+  `exists`, `delete`) y las operaciones puras de faltantes y basura. Se prueba con un almacén falso,
+  sin Incus.
 - **`tynix`**, paquete independiente para entornos reproducibles. Toma las ideas de Nix —declarativo,
   direccionado por contenido, verificable— sin usar Nix ni NixOS: la base sigue siendo Debian y los
   nodos son contenedores de Incus.
