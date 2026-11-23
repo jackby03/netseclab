@@ -21,6 +21,12 @@ from pathlib import Path
 
 from .errors import Issue, LabErrors
 
+
+def _errores(issues: list[Issue]) -> LabErrors:
+    """Los problemas de un paquete se leen como problemas del paquete, no de la topología."""
+    return LabErrors(issues, context="the labpack")
+
+
 FORMAT = "labpack"
 VERSION = 1
 MANIFEST = "labpack.json"
@@ -55,7 +61,7 @@ def pack(
     for ruta in files:
         absoluta = ruta if ruta.is_absolute() else Path.cwd() / ruta
         if not absoluta.is_file():
-            raise LabErrors([Issue(str(ruta), "file does not exist")])
+            raise _errores([Issue(str(ruta), "file does not exist")])
         relativa = absoluta.resolve().relative_to(base)
         datos = absoluta.read_bytes()
         clave = relativa.as_posix()
@@ -93,18 +99,18 @@ def read_manifest(labpack: Path) -> dict:
         with tarfile.open(labpack, "r:gz") as tar:
             miembro = tar.extractfile(MANIFEST)
             if miembro is None:
-                raise LabErrors([Issue(str(labpack), f"missing {MANIFEST}")])
+                raise _errores([Issue(str(labpack), f"missing {MANIFEST}")])
             datos = json.loads(miembro.read().decode("utf-8"))
     except tarfile.TarError as exc:
-        raise LabErrors([Issue(str(labpack), f"not a valid labpack: {exc}")]) from exc
+        raise _errores([Issue(str(labpack), f"not a valid labpack: {exc}")]) from exc
     except json.JSONDecodeError as exc:
-        raise LabErrors([Issue(str(labpack), f"invalid {MANIFEST}: {exc}")]) from exc
+        raise _errores([Issue(str(labpack), f"invalid {MANIFEST}: {exc}")]) from exc
 
     if not isinstance(datos, dict) or datos.get("format") != FORMAT:
-        raise LabErrors([Issue(str(labpack), "not a labpack (wrong format)")])
+        raise _errores([Issue(str(labpack), "not a labpack (wrong format)")])
     version = datos.get("version")
     if not isinstance(version, int) or version > VERSION:
-        raise LabErrors(
+        raise _errores(
             [Issue(str(labpack), f"unsupported labpack version {version!r}; up to {VERSION}")]
         )
     return datos
@@ -115,14 +121,14 @@ def verify(labpack: Path) -> list[PackedFile]:
     manifiesto = read_manifest(labpack)
     crudos = manifiesto.get("files") or []
     if not isinstance(crudos, list):
-        raise LabErrors([Issue(str(labpack), "'files' must be a list")])
+        raise _errores([Issue(str(labpack), "'files' must be a list")])
     esperados = {
         str(entrada.get("path", "")): str(entrada.get("sha256", ""))
         for entrada in crudos
         if isinstance(entrada, dict)
     }
     if not esperados:
-        raise LabErrors([Issue(str(labpack), "the labpack has no files")])
+        raise _errores([Issue(str(labpack), "the labpack has no files")])
 
     problemas: list[Issue] = []
     encontrados: set[str] = set()
@@ -147,7 +153,7 @@ def verify(labpack: Path) -> list[PackedFile]:
     for nombre in sorted(set(esperados) - encontrados):
         problemas.append(Issue(nombre, "listed in the manifest but missing"))
     if problemas:
-        raise LabErrors(problemas)
+        raise _errores(problemas)
     return [
         PackedFile(path=nombre, sha256=hash, size=0) for nombre, hash in sorted(esperados.items())
     ]
@@ -165,7 +171,7 @@ def unpack(labpack: Path, dest: Path) -> list[Path]:
                 continue
             salida = (destino / miembro.name).resolve()
             if not salida.is_relative_to(destino):
-                raise LabErrors([Issue(miembro.name, "refuses to write outside the destination")])
+                raise _errores([Issue(miembro.name, "refuses to write outside the destination")])
             salida.parent.mkdir(parents=True, exist_ok=True)
             fichero = tar.extractfile(miembro)
             if fichero is None:

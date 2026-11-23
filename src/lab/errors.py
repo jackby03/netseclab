@@ -18,16 +18,17 @@ class Issue:
 
 
 class LabErrors(Exception):  # noqa: N818 - agrupa varios errores
-    """Conjunto de problemas encontrados al cargar o validar una topología."""
+    """Conjunto de problemas encontrados al cargar o validar algo."""
 
-    def __init__(self, issues: list[Issue]):
+    def __init__(self, issues: list[Issue], *, context: str = "the topology"):
         self.issues = list(issues)
+        self.context = context
         super().__init__(self._render())
 
     def _render(self) -> str:
         n = len(self.issues)
         cabecera = "1 issue" if n == 1 else f"{n} issues"
-        lineas = [f"{cabecera} in the topology:"]
+        lineas = [f"{cabecera} in {self.context}:"]
         lineas += [f"  - {i}" for i in self.issues]
         return "\n".join(lineas)
 

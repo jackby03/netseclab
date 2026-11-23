@@ -26,6 +26,17 @@ from . import __version__
 from .answers import digest, read_submitted, save_submitted, store
 from .catalog import load_images, load_toolsets, resolve_image
 from .checks import run_check
+from .distribute import (
+    SIGNATURE_SUFFIX,
+    DownloadError,
+    SignatureError,
+    download,
+    is_url,
+    remote_name,
+    sign,
+    signature_path,
+    verify,
+)
 from .engine import (
     Incus,
     Runner,
@@ -540,16 +551,68 @@ def cmd_pack(args) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print(f"packed {len(rutas)} files into {destino}")
+    if args.sign:
+        try:
+            firma = sign(destino, Path(args.sign))
+        except SignatureError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        print(f"signed: {firma}")
     return 0
 
 
 def cmd_unpack(args) -> int:
-    """Verifica un .labpack y lo extrae."""
+    """Verifica un .labpack —y su firma, si se pide— y lo extrae."""
+    if args.signature and not args.signer:
+        print("error: --signature only makes sense together with --signer", file=sys.stderr)
+        return 2
+
+    temporal: Path | None = None
+    firmado: str | None = None
+
+    def _carpeta() -> Path:
+        """Una sola carpeta temporal para el paquete, la firma y las claves."""
+        nonlocal temporal
+        if temporal is None:
+            temporal = carpeta_temporal()
+        return temporal
+
     try:
-        extraidos = desempaquetar(Path(args.labpack), Path(args.to))
+        if is_url(args.labpack):
+            paquete = download(args.labpack, _carpeta() / remote_name(args.labpack))
+        else:
+            paquete = Path(args.labpack)
+
+        if args.signer:
+            if args.signature:
+                firma = Path(args.signature)
+            elif is_url(args.labpack):
+                firma = download(args.labpack + SIGNATURE_SUFFIX, _carpeta() / "signature.sig")
+            else:
+                firma = signature_path(paquete)
+            # La clave pública puede venir de una URL: el bucket del curso sirve para las dos cosas.
+            claves = [
+                download(valor, _carpeta() / f"signer-{i}.pub") if is_url(valor) else Path(valor)
+                for i, valor in enumerate(args.signer)
+            ]
+            firmado = verify(paquete, claves, signature=firma)
+
+        extraidos = desempaquetar(paquete, Path(args.to))
+    except SignatureError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except DownloadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     except LabErrors as exc:
         print(str(exc), file=sys.stderr)
         return 2
+    finally:
+        if temporal is not None:
+            shutil.rmtree(temporal, ignore_errors=True)
+
+    if firmado:
+        print(f"signature ok: {firmado}")
     print(f"{len(extraidos)} files extracted into {args.to}")
     return 0
 
@@ -885,11 +948,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--file", action="append", default=[], help="extra file to include")
     p.add_argument("--exercise", action="append", default=[], help="exercise to include")
     p.add_argument("--lock", default="lab.lock", help="lock file to include if it exists")
+    p.add_argument("--sign", help="private key to sign the package with (ssh-keygen)")
     p.set_defaults(func=cmd_pack)
 
     p = sub.add_parser("unpack", help="verify a .labpack and extract it")
-    p.add_argument("labpack")
+    p.add_argument("labpack", help="path or URL of the .labpack")
     p.add_argument("--to", required=True, help="destination directory")
+    p.add_argument(
+        "--signer",
+        action="append",
+        default=[],
+        help="public key (.pub) or its URL whose signature is accepted; repeatable",
+    )
+    p.add_argument("--signature", help="signature file (default: <labpack>.sig)")
     p.set_defaults(func=cmd_unpack)
 
     p = sub.add_parser("push", help="publish a lab image into a cache directory")

@@ -47,8 +47,8 @@ De ahí salen las redes, las IPs, las MACs, el DNS, el cortafuegos y las pruebas
   *mirror* (puerto espejo sobre Open vSwitch).
 - **Corrección automática.** Hechos del laboratorio comprobables y respuestas estrictas comparadas por
   hash, con puntuación y plantilla de informe.
-- **Distribución.** Laboratorios empaquetados en `.labpack` con checksums y caché de imágenes para un
-  bucket o un directorio compartido.
+- **Distribución.** Laboratorios empaquetados en `.labpack` con checksums, firma con OpenSSH y
+  descarga por URL, más caché de imágenes para un bucket o un directorio compartido.
 - **Ligero.** 1,9 GiB de artefacto; siete nodos en 2 GB de RAM.
 
 ## Empezar
