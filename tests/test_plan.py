@@ -144,6 +144,26 @@ def test_los_nombres_se_resuelven_con_el_dns_del_laboratorio(example_net):
     assert "printf 'nameserver %s\\n' 10.5.0.1" in guion
 
 
+def test_una_red_nat_usa_la_puerta_como_resolutor(workdir):
+    """El bridge NAT de Incus hace de DNS y reenvía al anfitrión: sin esto el nodo sale a Internet
+    por IP pero no resuelve nombres."""
+    ruta = workdir / "wan.yaml"
+    ruta.write_text(
+        """
+version: 1
+name: wan
+networks:
+  wan: { id: 7, type: nat, cidr: 10.99.7.0/24 }
+nodes:
+  - { name: cli, links: [{ net: wan, ip: 10.99.7.10 }] }
+""",
+        encoding="utf-8",
+    )
+    topo = load(ruta)
+    guion = netconf.net_script(topo, topo.node("cli"))
+    assert "printf 'nameserver %s\\n' 10.99.7.1" in guion
+
+
 def test_un_nodo_sin_direccion_pide_dhcp_y_reintenta(workdir):
     ruta = workdir / "dhcp.yaml"
     ruta.write_text(

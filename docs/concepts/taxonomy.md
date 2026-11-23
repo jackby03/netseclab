@@ -92,9 +92,11 @@ propia, con un toolset o con `packages:`.
 
 ## Internet como capacidad declarada
 
-El diseño parte de que un escenario no sale a Internet salvo que lo declare. La salida explícita
-(`lab up --uplink`) y la grabación y reproducción de Internet **no están implementadas**: hoy la
-decisión se expresa en el `type` del segmento, no en una capacidad declarada del escenario.
+El diseño parte de que un escenario no sale a Internet salvo que lo declare. Un segmento `type: nat`
+tiene NAT de salida a la caja y resuelve nombres por la puerta del bridge; el resto de segmentos, y
+todo escenario sin uno `nat`, está aislado. Lo que **no** está implementado es el atajo
+`lab up --uplink` (declarar la salida sin añadir el segmento a mano) ni la grabación y reproducción
+del tráfico de Internet.
 
 La documentación de referencia de [topología](../reference/topology.md) describe los tipos de red que
 el modelo acepta.

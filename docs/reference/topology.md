@@ -73,7 +73,7 @@ El bridge se llama `nvm-<nombre de la red>`.
 | `type` | Qué hace |
 |---|---|
 | `isolated` | Bridge sin dirección en la caja; solo lo ven los nodos conectados. |
-| `nat` | Bridge con dirección y NAT de salida a la caja. |
+| `nat` | Bridge con dirección, NAT de salida a la caja y DNS por la puerta: sirve para las prácticas que necesitan Internet. |
 | `bridged` | Cuelga de una interfaz física de la caja; exige `parent`. |
 
 ### Modos de conmutación
@@ -289,7 +289,7 @@ Los errores se acumulan y se presentan con la ruta del YAML: `nodes.fw.links[ext
 | Publicar un puerto del nodo al anfitrión | Pendiente: `ports:`. |
 | Enlaces punto a punto entre dos nodos | Pendiente: `links: [{peer: otro-nodo}]`. |
 | Herramientas propias por nodo | Pendiente: `tools:`. |
-| Salida a Internet declarada | Pendiente: `lab up --uplink`. |
+| Salida a Internet | Implementada por segmento con `type: nat` (NAT y DNS); el atajo `lab up --uplink`, pendiente. |
 | Nodos Windows | Pendiente y fuera del alcance actual. |
 | Compatibilidad con Containerlab o GNS3 | No; se puede exportar el plan, no el fichero. |
 

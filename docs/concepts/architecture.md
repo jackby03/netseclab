@@ -176,6 +176,7 @@ Los nodos usan por defecto 1 vCPU y 256 MB de RAM; se ajustan con `resources:`.
 
 ## Límites conocidos
 
-La salida a Internet declarada (`--uplink`) y la grabación de Internet están pendientes. También lo
-están las herramientas por nodo (`tools:`), los puertos publicados al anfitrión y los enlaces punto a
-punto entre nodos. Los nodos Windows no son un objetivo de esta fase.
+La salida a Internet se declara por segmento con `type: nat`; el atajo `--uplink` y la grabación de
+Internet están pendientes. También lo están las herramientas por nodo (`tools:`), los puertos
+publicados al anfitrión y los enlaces punto a punto entre nodos. Los nodos Windows no son un objetivo
+de esta fase.

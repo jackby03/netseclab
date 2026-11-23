@@ -129,7 +129,8 @@ captura y corrección son las que el proyecto conserva y las que usa como prueba
 
 ## Lo que el original hacía y aquí está pendiente
 
-La salida a Internet declarada, la grabación y reproducción de Internet y los nodos Windows están
-pendientes. La carpeta compartida del original se sustituye por `assets`, que copian ficheros al
+La salida a Internet existe por segmento (`type: nat`), que es lo que usaba el original para llegar al
+mundo real desde `base`; el atajo `--uplink`, la grabación y reproducción de Internet y los nodos
+Windows están pendientes. La carpeta compartida del original se sustituye por `assets`, que copian ficheros al
 nodo durante el arranque. La alternativa prevista para Active Directory es un controlador de dominio
 Samba en un nodo Linux, no una VM de Windows.

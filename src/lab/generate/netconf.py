@@ -49,7 +49,12 @@ def _rutas_de_red(topo: Topology, node: Node) -> list[tuple[str, str, str]]:
 
 
 def _dns_servers(topo: Topology, node: Node) -> list[str]:
-    """Direcciones de los nodos que hacen de DNS en las redes a las que está conectado."""
+    """Direcciones de los nodos que hacen de DNS en las redes a las que está conectado.
+
+    Si la topología no declara ningún servidor DNS en esas redes pero el nodo está en una red `nat`,
+    se usa la puerta de enlace: el bridge de Incus hace de resolutor y reenvía al anfitrión. Sin
+    esto el nodo sale a Internet por IP, pero no resuelve nombres.
+    """
     redes = {link.net for link in node.links}
     propias = {link.ip for link in node.links}
     servidores = [
@@ -59,7 +64,13 @@ def _dns_servers(topo: Topology, node: Node) -> list[str]:
         for link in otro.links
         if link.net in redes and link.ip and link.ip not in propias
     ]
-    return sorted(set(servidores))
+    if servidores:
+        return sorted(set(servidores))
+    for link in node.links:
+        net = topo.networks[link.net]
+        if net.type == "nat" and net.gateway and net.gateway not in propias:
+            return [net.gateway]
+    return []
 
 
 def net_script(topo: Topology, node: Node) -> str:
