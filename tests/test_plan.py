@@ -131,6 +131,19 @@ def test_una_red_dhcp_con_direccion_declarada_se_configura_en_el_nodo(example_ne
     assert "ip route replace default via 10.5.0.1 dev eth0" in guion
 
 
+def test_el_nodo_enmascara_el_gestor_de_red_de_la_imagen(example_net):
+    """Dos gestores de red peleándose por la misma interfaz: uno pone la dirección y el otro la
+    quita, y tras un reinicio el nodo se quedaba sin ruta de vuelta."""
+    guion = netconf.net_script(example_net, example_net.node("exta"))
+    assert "systemctl mask --now systemd-networkd.service" in guion
+
+
+def test_los_nombres_se_resuelven_con_el_dns_del_laboratorio(example_net):
+    """Sin networkd, el resolv.conf de la imagen apunta a un stub sin upstream."""
+    guion = netconf.net_script(example_net, example_net.node("exta"))
+    assert "printf 'nameserver %s\\n' 10.5.0.1" in guion
+
+
 def test_un_nodo_sin_direccion_pide_dhcp_y_reintenta(workdir):
     ruta = workdir / "dhcp.yaml"
     ruta.write_text(

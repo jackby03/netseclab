@@ -48,11 +48,31 @@ def _rutas_de_red(topo: Topology, node: Node) -> list[tuple[str, str, str]]:
     return rutas
 
 
+def _dns_servers(topo: Topology, node: Node) -> list[str]:
+    """Direcciones de los nodos que hacen de DNS en las redes a las que está conectado."""
+    redes = {link.net for link in node.links}
+    propias = {link.ip for link in node.links}
+    servidores = [
+        link.ip
+        for otro in topo.nodes
+        if otro.dns_server
+        for link in otro.links
+        if link.net in redes and link.ip and link.ip not in propias
+    ]
+    return sorted(set(servidores))
+
+
 def net_script(topo: Topology, node: Node) -> str:
     lineas = [
         "#!/bin/sh",
         "# Generado por netseclab. No editar: cambia la topología y vuelve a arrancar.",
         "set -eu",
+        "",
+        "# Un solo gestor de red: este script. networkd y su espera de «red en línea» se",
+        "# enmascaran; si no, compiten por las mismas interfaces y tras un reinicio dejan al",
+        "# nodo con una dirección y sin ruta de vuelta.",
+        "systemctl mask --now systemd-networkd.service systemd-networkd.socket "
+        "systemd-networkd-wait-online.service 2>/dev/null || true",
         "",
     ]
     for link in node.links:
@@ -108,6 +128,16 @@ def net_script(topo: Topology, node: Node) -> str:
     for link in node.links:
         for destino, via in link.routes:
             lineas.append(f"ip route replace {destino} via {via} dev {link.ifname}")
+
+    servidores = _dns_servers(topo, node)
+    if servidores:
+        destinos = " ".join(servidores)
+        lineas += [
+            "",
+            "# resolución de nombres por el servidor DNS del laboratorio",
+            "rm -f /etc/resolv.conf",
+            f"printf 'nameserver %s\\n' {destinos} > /etc/resolv.conf",
+        ]
 
     if node.sysctls:
         lineas += [
