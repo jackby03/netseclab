@@ -18,6 +18,8 @@ from pathlib import Path
 
 import yaml
 
+from tynix import read_lock, write_lock
+from tynix.errors import InvalidLockError
 from tynix.store import garbage
 
 from . import __version__
@@ -34,6 +36,7 @@ from .engine import (
 )
 from .engine.capture import plan_capture, run_capture
 from .engine.incus import SNAPSHOT_INICIAL
+from .environments import lock_from
 from .errors import LabErrors
 from .exercise import load as load_exercise
 from .images import build_plan, listar_imagenes, load_recipe
@@ -516,6 +519,34 @@ def cmd_hash(args) -> int:
     return 0
 
 
+def cmd_lock(args) -> int:
+    """Clava los entornos que declara una topología y detecta la deriva."""
+    topo = _cargar(args.file)
+    lock = lock_from(topo, load_images())
+    if not lock.environments:
+        print("no environments declared in this topology", file=sys.stderr)
+        return 2
+
+    ruta = Path(args.out)
+    if args.check:
+        try:
+            anterior = read_lock(ruta)
+        except InvalidLockError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        deriva = anterior.drift(lock)
+        if not deriva:
+            print(f"{ruta}: up to date")
+            return 0
+        for diferencia in deriva:
+            print(f"  {diferencia.describe()}")
+        return 1
+
+    destino = write_lock(ruta, lock)
+    print(f"{len(lock.environments)} environments locked in {destino}")
+    return 0
+
+
 def cmd_gc(args) -> int:
     """Borra las imágenes del proyecto que ningún laboratorio referencia.
 
@@ -758,6 +789,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("hash", help="sha256 of an answer, to publish exercises without the value")
     p.add_argument("value")
     p.set_defaults(func=cmd_hash)
+
+    p = sub.add_parser("lock", help="pin the environments declared by a topology")
+    p.add_argument("file")
+    p.add_argument("--out", default="lab.lock", help="where to write the lock (default: lab.lock)")
+    p.add_argument(
+        "--check", action="store_true", help="compare with the existing lock and fail on drift"
+    )
+    p.set_defaults(func=cmd_lock)
 
     p = sub.add_parser("gc", help="remove lab images that nothing references")
     p.add_argument("files", nargs="*", help="topologies whose node images must be kept")
