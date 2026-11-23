@@ -13,9 +13,22 @@ Estado: **v0.1.0 usable, no completo**. Esto es lo que queda, en orden de depend
 - Caja de VMware reproducible: 1,9 GiB, siete nodos en 2 GB de RAM.
 - CI en GitHub: pruebas en tres versiones de Python, validación de contenido y estilo.
 
-## Siguiente: distribuir laboratorios (`lab pack` / `lab pull`)
+## Siguiente: `tynix`, entornos reproducibles (en curso)
 
-Es el bloque que convierte el proyecto en algo compartible.
+La idea de Nix aplicada a Incus, sin Nix ni NixOS: los nodos siguen siendo Debian y el alumno ve un
+Linux normal; la reproducibilidad queda debajo, en cómo se construye y se verifica el entorno.
+
+- ✅ **Manifiesto y lock** (`src/tynix/`): base, paquetes con versión y hash, ficheros y arranque;
+  hash de contenido; `tynix.lock` con detección de deriva.
+- ⏳ **Store**: imágenes direccionadas por hash y recolección de basura (`lab gc`).
+- ⏳ **Caché**: `push`/`pull` contra el bucket de la universidad, con verificación y firma opcional.
+- ⏳ **Integración con el laboratorio**: que un nodo pida un entorno y `lab up` resuelva, construya o
+  descargue la imagen que toca.
+
+**Por qué primero:** la reproducibilidad de verdad es lo que permite que un mismo laboratorio dé los
+mismos resultados en dos universidades, y es la base sobre la que se apoya la distribución.
+
+## Después: distribuir laboratorios (`lab pack` / `lab pull`)
 
 - Formato `.labpack`: topología, ejercicios, assets y manifiesto.
 - Manifiesto con checksums por fichero y versión del formato.
@@ -23,8 +36,8 @@ Es el bloque que convierte el proyecto en algo compartible.
 - Los ejercicios viajan con hashes, nunca con las respuestas en claro.
 - Firma opcional del paquete por el autor.
 
-**Por qué primero:** sin esto, un profesor que quiera compartir su laboratorio tiene que mandar una
-carpeta y explicar cómo colocarla. Con esto, es un fichero de kilobytes.
+**Por qué después de tynix:** un paquete de laboratorio tiene que llevar el lock de sus entornos para
+que quien lo reciba obtenga lo mismo; sin tynix, `labpack` solo sería un zip con buena intención.
 
 ## Después: el laboratorio de Samba AD
 
