@@ -20,6 +20,10 @@
 - Los errores de un `.labpack` se presentan como problemas del paquete («issues in the labpack») y no
   de la topología.
 
+- **Diseño del SIEM ligero** (`docs/design/siem.md`): motor de reglas en terminal con SQLite y
+  PyYAML, casos reproducibles para corregir y probar en el CI, empaquetado como `src/siem/` y
+  criterios escritos para separarlo a su propio repositorio si crece.
+
 ### Corregido
 
 - **Las redes `nat` salían a Internet por IP, pero no resolvían nombres**: el nodo recibía una
@@ -103,6 +107,10 @@
 - `Makefile` con `test`, `lint`, `types`, `cov` y `check`.
 - `.editorconfig`, `SECURITY.md` y un índice en `docs/`.
 
+- **Diseño del SIEM ligero** (`docs/design/siem.md`): motor de reglas en terminal con SQLite y
+  PyYAML, casos reproducibles para corregir y probar en el CI, empaquetado como `src/siem/` y
+  criterios escritos para separarlo a su propio repositorio si crece.
+
 ### Corregido
 
 - **Las redes `nat` salían a Internet por IP, pero no resolvían nombres**: el nodo recibía una
@@ -144,6 +152,10 @@ VM ligera con contenedores, se rompe sin miedo, se restaura en un comando y se c
   ejercicios y límites.
 - **6 ejercicios** y **4 laboratorios** de ejemplo.
 - **175 pruebas**.
+
+- **Diseño del SIEM ligero** (`docs/design/siem.md`): motor de reglas en terminal con SQLite y
+  PyYAML, casos reproducibles para corregir y probar en el CI, empaquetado como `src/siem/` y
+  criterios escritos para separarlo a su propio repositorio si crece.
 
 ### Corregido
 

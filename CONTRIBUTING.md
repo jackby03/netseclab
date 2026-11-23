@@ -238,7 +238,18 @@ Criterio: hay una nota escrita con las condiciones de uso aceptadas.
 
 Criterio: la caja y el `CHANGELOG.md` describen la misma versión.
 
-### 7. Cerrar los pendientes técnicos
+### 7. Construir el SIEM ligero y el laboratorio de SOC
+
+El diseño está en [docs/design/siem.md](docs/design/siem.md): un motor de reglas en terminal, con
+SQLite y PyYAML, que quepa en el nodo `soc` y que se pueda corregir con casos de eventos preparados.
+Se implementa en cinco pasos, cada uno utilizable por separado: núcleo e ingesta, motor de reglas,
+replay con pruebas doradas en el CI, integración (receta del nodo `soc` y comprobación
+`siem-alerts`) y, por último, el laboratorio `soc-lab` con el ejercicio de triaje.
+
+Criterio: `siem replay` reproduce un caso con sus alertas esperadas en el CI y el ejercicio de triaje
+se corrige solo.
+
+### 8. Cerrar los pendientes técnicos
 
 - Atajo `lab up --uplink` (hoy la salida a Internet se declara con un segmento `type: nat`) y
   grabación/reproducción de Internet.
