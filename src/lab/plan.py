@@ -13,58 +13,18 @@ from __future__ import annotations
 
 import copy
 import shlex
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
+from . import environments
 from .catalog import load_images, load_toolsets, resolve_image
 from .generate import dnsmasq, hosts, netconf, nftables, telemetry
 from .model import Node, Topology
+from .steps import Step
 
 # Perfil de Incus con el disco raíz de los nodos. El perfil por defecto trae además
 # una tarjeta en incusbr0, que no queremos en un laboratorio aislado.
 PERFIL_NODOS = "netseclab"
-
-
-@dataclass
-class Step:
-    phase: str
-    kind: str = "cmd"  # cmd | push | tar
-    argv: list[str] = field(default_factory=list)
-    node: str | None = None
-    note: str = ""
-    path: str = ""
-    content: str = ""
-    mode: str = "0644"
-
-    def command(self) -> str:
-        return " ".join(shlex.quote(a) for a in self.exec_argv())
-
-    def exec_argv(self) -> list[str]:
-        """Lista de argumentos lista para ejecutar sin pasar por un shell."""
-        if self.kind == "push":
-            raise ValueError("a push is not a command")
-        if self.kind == "tar":
-            origen = shlex.quote(self.argv[0])
-            destino = shlex.quote(self.path)
-            nodo = shlex.quote(self.node or "")
-            return [
-                "sh",
-                "-c",
-                f"tar -C {origen} -cf - . | incus exec {nodo} -- tar -C {destino} -xf -",
-            ]
-        if self.node:
-            return ["incus", "exec", self.node, "--", *self.argv]
-        return list(self.argv)
-
-    def as_dict(self) -> dict:
-        return {
-            "phase": self.phase,
-            "kind": self.kind,
-            "node": self.node,
-            "command": self.command() if self.kind != "push" else None,
-            "path": self.path or None,
-            "note": self.note or None,
-        }
 
 
 @dataclass
@@ -209,6 +169,10 @@ def build(
     # las imágenes se resuelven una vez, para que el plan sea explícito
     for node in nodes:
         node.image = resolve_image(node.image, imagenes, where=f"nodes.{node.name}.image")
+        # Un nodo puede pedir un entorno en vez de una imagen: se resuelve a un
+        # nombre direccionado por contenido.
+        if node.environment is not None:
+            node.image = environments.image_for(node, imagenes)
 
     steps: list[Step] = []
     redes = [n for n in topo.networks.values() if any(x.link_to(n.name) for x in nodes)]
@@ -270,6 +234,16 @@ def build(
                 note=f"network {net.name} ({net.cidr}, {net.type}, mode {net.mode})",
             )
         )
+
+    # ── entornos: si la imagen de un entorno no está, se construye antes
+    entorno_steps: list[Step] = []
+    creados: set[str] = set()
+    for node in nodes:
+        paso = environments.ensure_step(node, imagenes)
+        if paso is not None and paso.command() not in creados:
+            creados.add(paso.command())
+            entorno_steps.append(paso)
+    steps.extend(entorno_steps)
 
     # ── nodos
     for node in nodes:

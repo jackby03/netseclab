@@ -4,6 +4,10 @@
 
 ### Añadido
 
+- **Entornos en la topología**: un nodo puede declarar `environment:` (base + paquetes) en vez de una
+  imagen concreta. El plan resuelve el entorno a un nombre direccionado por contenido, construye la
+  imagen si no está y la publica con su manifiesto. Dos nodos con el mismo entorno comparten imagen.
+- **`lab lock`**: clava los entornos de una topología en `lab.lock` y `--check` detecta la deriva.
 - **`lab gc`**: borra las imágenes que ningún laboratorio referencia. Solo toca los prefijos del
   proyecto (`lab-` y `lab/`), nunca las imágenes del sistema; sin `--yes` solo enseña lo que
   borraría, y exige saber qué conservar (una topología o `--keep`).

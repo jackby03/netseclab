@@ -72,8 +72,10 @@ CLAVES = {
         "hostname",
         "env",
         "privileged",
+        "environment",
     },
     "enlace": {"net", "ip", "mac", "vlan", "default", "gateway", "routes", "ifname"},
+    "entorno": {"base", "packages", "startup"},
     "asset": {"src", "dst", "mode"},
     "recursos": {"cpus", "memory", "disk"},
     "telemetria": {"soc", "sources", "retention"},
@@ -220,6 +222,15 @@ class Resources:
 
 
 @dataclass
+class NodeEnvironment:
+    """Entorno declarado por un nodo: imagen base más paquetes."""
+
+    base: str
+    packages: list[str] = field(default_factory=list)
+    startup: list[str] = field(default_factory=list)
+
+
+@dataclass
 class Node:
     name: str
     image: str
@@ -237,6 +248,7 @@ class Node:
     hostname: str = ""
     env: dict[str, str] = field(default_factory=dict)
     privileged: bool = False
+    environment: NodeEnvironment | None = None
 
     def link_to(self, net: str) -> Link | None:
         for link in self.links:
@@ -479,6 +491,29 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
             disk=str(res_raw["disk"]) if "disk" in res_raw else None,
         )
 
+        entorno_raw = data.get("environment")
+        entorno: NodeEnvironment | None = None
+        if entorno_raw is not None:
+            if data.get("image"):
+                sc.add(f"{where}.environment", "cannot be combined with 'image'")
+            e_where = f"{where}.environment"
+            e_data = _as_dict(entorno_raw, e_where, sc)
+            _rechazar_desconocidas(e_data, "entorno", e_where, sc)
+            base = str(e_data.get("base", "") or "")
+            if not base:
+                sc.add(f"{e_where}.base", "required")
+            entorno = NodeEnvironment(
+                base=base,
+                packages=[
+                    str(paquete)
+                    for paquete in _as_list(e_data.get("packages"), f"{e_where}.packages", sc)
+                ],
+                startup=[
+                    str(comando)
+                    for comando in _as_list(e_data.get("startup"), f"{e_where}.startup", sc)
+                ],
+            )
+
         assets = []
         for a_idx, a_raw in enumerate(_as_list(data.get("assets"), f"{where}.assets", sc)):
             a_where = f"{where}.assets[{a_idx}]"
@@ -511,6 +546,7 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
             hostname=str(data.get("hostname", "")),
             env={str(k): str(v) for k, v in _as_dict(data.get("env"), f"{where}.env", sc).items()},
             privileged=bool(data.get("privileged", False)),
+            environment=entorno,
         )
 
         # ---- enlaces
