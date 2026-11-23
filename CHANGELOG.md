@@ -1,5 +1,20 @@
 # Cambios
 
+## No publicado
+
+### Añadido
+
+- **`tynix`**, paquete independiente para entornos reproducibles. Toma las ideas de Nix —declarativo,
+  direccionado por contenido, verificable— sin usar Nix ni NixOS: la base sigue siendo Debian y los
+  nodos son contenedores de Incus.
+  - Manifiesto de entorno: imagen base con huella, paquetes con versión y hash, ficheros inyectados y
+    comandos de arranque.
+  - Direccionamiento por contenido: el nombre de la imagen se deriva del hash del manifiesto, así que
+    cambiar una versión produce una imagen distinta y la anterior queda intacta.
+  - Lockfile (`tynix.lock`) con detección de deriva: qué entornos se han añadido, eliminado o cambiado
+    desde que se clavaron.
+  - 15 pruebas propias, sin dependencias de Incus ni del resto del laboratorio.
+
 ## 0.1.0 — primer PoC funcional
 
 Primera versión completa y validada en la caja: el laboratorio se describe en YAML, se levanta en una

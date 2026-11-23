@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "netseclab"
 version = "0.1.0"
-description = "Laboratorio de seguridad en redes: ligero, declarativo y reproducible"
+description = "Netsec Laboratory: laboratorio de seguridad en redes ligero, declarativo y reproducible"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "GPL-3.0-or-later" }
 dependencies = ["PyYAML>=6.0"]
-authors = [{ name = "netseclab" }]
+authors = [{ name = "Jack Del Aguila", email = "jackby03@users.noreply.github.com" }]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
