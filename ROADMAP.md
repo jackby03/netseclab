@@ -1,0 +1,56 @@
+# Plan de trabajo
+
+Estado: **v0.1.0 usable, no completo**. Esto es lo que queda, en orden de dependencia.
+
+## Hecho (v0.1.0)
+
+- Modelo de topología en YAML con validación y mensajes que dicen dónde está el error.
+- Generación de redes, nodos, `nftables`, `dnsmasq`, `/etc/hosts`, red por nodo y telemetría.
+- Ciclo de vida idempotente con snapshots y restauración.
+- Captura por segmento en tres modos: switch, hub y puerto espejo.
+- Ejercicios: hechos del laboratorio y respuestas estrictas con hash, puntuación e informe.
+- Consolas en el navegador.
+- Caja de VMware reproducible: 1,9 GiB, siete nodos en 2 GB de RAM.
+- CI en GitHub: pruebas en tres versiones de Python, validación de contenido y estilo.
+
+## Siguiente: distribuir laboratorios (`lab pack` / `lab pull`)
+
+Es el bloque que convierte el proyecto en algo compartible.
+
+- Formato `.labpack`: topología, ejercicios, assets y manifiesto.
+- Manifiesto con checksums por fichero y versión del formato.
+- `lab pack` produce el paquete; `lab pull` lo instala y verifica.
+- Los ejercicios viajan con hashes, nunca con las respuestas en claro.
+- Firma opcional del paquete por el autor.
+
+**Por qué primero:** sin esto, un profesor que quiera compartir su laboratorio tiene que mandar una
+carpeta y explicar cómo colocarla. Con esto, es un fichero de kilobytes.
+
+## Después: el laboratorio de Samba AD
+
+El escenario de intrusión real, con contenedores (sin Windows ni virtualización anidada):
+
+- Imagen `dc` con Samba como controlador de dominio.
+- Recursos SMB mal configurados (sesión anónima, permisos amplios).
+- Credenciales en ficheros de usuarios (`pgadmin`, `postgres`).
+- Banderas: el usuario anónimo, el ID de John Doe, la contraseña encontrada.
+- Informe escrito con las preguntas de razonamiento.
+
+**Por qué después:** necesita `lab pack` para poder distribuirse, y es el contenido que justifica el
+formato.
+
+## Más adelante
+
+- **Salida a Internet declarada** (`--uplink`): un escenario puede pedir conexión, y el resto siguen
+  aislados.
+- **Grabación y reproducción de Internet** para prácticas de OSINT sin depender de la red real.
+- **Herramientas por nodo** (`tools:`) sin pasar por un toolset completo.
+- **Puertos concretos en las políticas** y enlaces punto a punto.
+- **Plataforma web**: índice de laboratorios publicados, búsqueda y documentación de cada actividad.
+  Empieza por un índice en git, no por una aplicación.
+
+## Ideas aparcadas
+
+- Nodos Windows (requieren virtualización anidada; el AD se cubre con Samba).
+- Ejecutar el laboratorio directamente en macOS o Windows sin VM: descartado por ahora, Incus
+  necesita Linux.

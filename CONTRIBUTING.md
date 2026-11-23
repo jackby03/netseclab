@@ -71,6 +71,69 @@ propósito. Si son más de veinte paquetes, probablemente son dos toolsets.
 - Los errores se acumulan y dicen **dónde** y **qué arreglar**; no se aborta en el primer fallo.
 - Un fallo silencioso es un fallo: si una opción no se puede aplicar, es un error, no un aviso.
 
+## Flujo de trabajo
+
+Aunque el proyecto lo lleve una sola persona, se trabaja como si fueran varias: es lo que deja un
+rastro legible de por qué cada cosa está como está.
+
+### Ramas
+
+- `main` siempre en verde. Nada se sube directo si rompe pruebas.
+- Cada cambio, en su rama: `feat/labpack`, `fix/pool-btrfs`, `docs/readme-origen`.
+- Se integra con *squash* si la rama acumuló commits de prueba; si no, con merge normal.
+
+### Commits
+
+Formato `tipo(alcance): descripción en imperativo`, con el cuerpo explicando **por qué**, no qué.
+
+| Tipo | Cuándo |
+|---|---|
+| `feat` | Funcionalidad nueva para quien usa el laboratorio |
+| `fix` | Arreglo de un comportamiento incorrecto |
+| `docs` | Documentación, guía, ejercicios |
+| `test` | Pruebas que faltaban o estaban mal |
+| `ci` | Flujo de integración |
+| `refactor` | Cambio interno sin cambiar comportamiento |
+| `chore` | Versiones, dependencias, limpieza |
+
+Ejemplos reales del proyecto:
+
+```
+caja: los nodos usan el pool copy-on-write
+engine: la fase de ficheros no se ejecutaba nunca
+ejercicios: respuestas estrictas con hash e informe
+```
+
+Un commit, una idea. Si el mensaje necesita un "y", probablemente son dos commits.
+
+### Versiones
+
+Versionado semántico: `MAYOR.MENOR.PARCHE`.
+
+- `PARCHE`: arreglos compatibles.
+- `MENOR`: funcionalidad nueva compatible.
+- `MAYOR`: cambios que rompen el formato de topología, de ejercicio o el CLI.
+
+Cada versión lleva su etiqueta (`v0.1.0`) y su entrada en [CHANGELOG.md](CHANGELOG.md), con las
+secciones de *Añadido*, *Cambiado*, *Corregido* y *Limitaciones conocidas*. La nota de la release en
+GitHub sale de ahí.
+
+### Antes de integrar
+
+```bash
+pytest                      # 175 pruebas
+ruff check src tests        # estilo
+lab validate "lab/examples/*.yaml"
+lab validate "lab/exercises/*.yaml"
+```
+
+El CI hace lo mismo en tres versiones de Python; si pasa en local, pasa allí.
+
+### Qué no se versiona
+
+`build/`, `answers/` y `capture/` no viajan: son artefactos de una máquina, no del proyecto. El
+`.gitignore` ya los cubre.
+
 ## Antes de enviar
 
 ```bash
