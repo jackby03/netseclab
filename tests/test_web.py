@@ -17,7 +17,7 @@ def servidor():
     terminales: list[FakeTerminal] = []
 
     def fabrica(_nodo: str) -> FakeTerminal:
-        t = FakeTerminal(entrada="Debian GNU/Linux\nlab@nodo:~$ ".encode())
+        t = FakeTerminal(entrada=b"Debian GNU/Linux\nlab@nodo:~$ ")
         terminales.append(t)
         return t
 

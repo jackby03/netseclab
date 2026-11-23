@@ -10,6 +10,7 @@ shell dentro del laboratorio.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import select
@@ -17,9 +18,10 @@ import shlex
 import struct
 import subprocess
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Callable, Protocol
+from typing import Protocol
 from urllib.parse import parse_qs, urlparse
 
 try:  # pty y termios no existen en Windows
@@ -64,7 +66,7 @@ class PtyTerminal:
             )
         except OSError:  # pragma: no cover - depende de la plataforma
             pass
-        self.proc = subprocess.Popen(  # noqa: S603
+        self.proc = subprocess.Popen(
             argv,
             stdin=esclavo,
             stdout=esclavo,
@@ -95,18 +97,14 @@ class PtyTerminal:
 
     def close(self) -> None:
         self.alive = False
-        try:
+        with contextlib.suppress(Exception):  # mejor esfuerzo al cerrar
             self.proc.terminate()
             self.proc.wait(timeout=2)
-        except Exception:  # pragma: no cover - mejor esfuerzo
-            try:
+        if self.proc.poll() is None:
+            with contextlib.suppress(Exception):
                 self.proc.kill()
-            except Exception:
-                pass
-        try:
+        with contextlib.suppress(OSError):
             os.close(self.master)
-        except OSError:
-            pass
 
 
 @dataclass
@@ -309,7 +307,7 @@ cargarNodos();
 
 
 class Manejador(BaseHTTPRequestHandler):
-    server: "Servidor"
+    server: Servidor
 
     def log_message(self, formato: str, *args) -> None:  # silencio
         pass
@@ -345,7 +343,7 @@ class Manejador(BaseHTTPRequestHandler):
 
     # ---------------------------------------------------------------- rutas
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         ruta = urlparse(self.path)
         if ruta.path.startswith("/api/") and not self._autorizado(ruta):
             self._json({"error": "token no válido"}, codigo=401)
@@ -375,7 +373,7 @@ class Manejador(BaseHTTPRequestHandler):
             return
         self._json({"error": "no encontrado"}, codigo=404)
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         ruta = urlparse(self.path)
         if ruta.path.startswith("/api/") and not self._autorizado(ruta):
             self._json({"error": "token no válido"}, codigo=401)

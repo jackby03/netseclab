@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-import lab.cli as cli
+from lab import cli
 from lab.answers import Answer, digest, normalize, read_submitted, save_submitted
 from lab.errors import LabErrors
 from lab.exercise import load

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-import lab.cli as cli
+from lab import cli
 from lab.engine import RecordingRunner
 
 SNAPS_INITIAL = json.dumps([{"name": "initial"}])

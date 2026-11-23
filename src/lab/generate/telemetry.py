@@ -7,7 +7,7 @@ y, si el ejercicio lo pide, siguen además ficheros JSON como el `eve.json` de S
 
 from __future__ import annotations
 
-from ..model import Network, Node, Topology
+from ..model import Node, Topology
 
 PUERTO = 514
 
@@ -22,7 +22,7 @@ FICHEROS = {
 
 def _direccion_soc(topo: Topology, servidor: Node) -> str:
     enlace = servidor.links[0]
-    red: Network = topo.networks[enlace.net]
+    topo.networks[enlace.net]
     return f"{enlace.ip}"
 
 
@@ -41,7 +41,7 @@ def client_config(topo: Topology, node: Node, servidor: Node) -> str:
             )
     lineas += [
         "",
-        f'if $syslogfacility-text == "local5" then {{',
+        'if $syslogfacility-text == "local5" then {',
         f'  action(type="omfwd" target="{soc}" port="{PUERTO}" protocol="tcp"',
         '         template="RSYSLOG_SyslogProtocol23Format")',
         "  stop",

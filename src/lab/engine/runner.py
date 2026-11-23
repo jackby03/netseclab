@@ -6,8 +6,9 @@ Toda la capa de Incus pasa por aquí, de modo que el motor se puede probar sin I
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Protocol, Sequence
+from typing import Protocol
 
 
 @dataclass
@@ -35,6 +36,7 @@ class SubprocessRunner:
                 input=stdin,
                 capture_output=True,
                 text=True,
+                check=False,
                 timeout=600,
             )
         except FileNotFoundError as exc:

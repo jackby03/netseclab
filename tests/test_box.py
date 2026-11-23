@@ -8,7 +8,6 @@ que el empaquetado lleva lo que el provisionamiento espera.
 from __future__ import annotations
 
 import re
-import tarfile
 from pathlib import Path
 
 import yaml

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-import lab.cli as cli
+from lab import cli
 from lab.engine import RecordingRunner
 from lab.generate import netconf
 from lab.model import load

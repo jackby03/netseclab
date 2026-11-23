@@ -108,8 +108,8 @@ def build_plan(recipe: ImageRecipe, root: Path | None = None) -> list[Step]:
         lista = " ".join(recipe.packages)
         pasos.append(
             Step("paquetes", node=inst,
-                 argv=["sh", "-c", "apt-get update -qq && "
-                       f"DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {lista}"],
+                 argv=["sh", "-c", ("apt-get update -qq && "
+                       f"DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {lista}")],
                  note=f"{len(recipe.packages)} packages")
         )
 

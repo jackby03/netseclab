@@ -24,9 +24,12 @@ def test_ningun_fichero_de_texto_tiene_finales_de_linea_windows():
         if not base.exists():
             continue
         for ruta in base.rglob("*"):
-            if ruta.is_file() and ruta.suffix in extensiones:
-                if b"\r\n" in ruta.read_bytes():
-                    culpables.append(str(ruta.relative_to(RAIZ)))
+            if (
+                ruta.is_file()
+                and ruta.suffix in extensiones
+                and b"\r\n" in ruta.read_bytes()
+            ):
+                culpables.append(str(ruta.relative_to(RAIZ)))
     assert culpables == [], f"ficheros con CRLF: {culpables}"
 
 

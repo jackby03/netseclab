@@ -7,6 +7,7 @@ las prácticas se enseña el comando equivalente de Incus.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import shutil
 import sys
@@ -14,11 +15,11 @@ from datetime import datetime
 from pathlib import Path
 
 from . import __version__
+from .answers import digest, read_submitted, save_submitted, store
 from .catalog import load_images, load_toolsets
 from .checks import run_check
 from .engine import (
     Incus,
-    RecordingRunner,
     Runner,
     SubprocessRunner,
     execute,
@@ -28,11 +29,9 @@ from .engine import (
 from .engine.capture import plan_capture, run_capture
 from .engine.incus import SNAPSHOT_INICIAL
 from .errors import LabErrors
-from .answers import digest, read_submitted, save_submitted, store
 from .exercise import load as load_exercise
 from .model import load
 from .plan import Plan, build
-
 
 # --------------------------------------------------------------------------- utilidades
 
@@ -135,7 +134,7 @@ def cmd_validate(args) -> int:
             import yaml
 
             datos = yaml.safe_load(Path(ruta).read_text(encoding="utf-8")) or {}
-        except (OSError, Exception):  # el error real lo dará el cargador correspondiente
+        except Exception:  # noqa: BLE001 - el error real lo da el cargador correspondiente
             datos = {}
 
         es_ejercicio = isinstance(datos, dict) and "checks" in datos and "lab" in datos
@@ -744,10 +743,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
-            try:
+            with contextlib.suppress(Exception):  # consolas exóticas
                 stream.reconfigure(encoding="utf-8")
-            except Exception:  # pragma: no cover - consolas exóticas
-                pass
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)

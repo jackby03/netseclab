@@ -234,8 +234,8 @@ def build(
                 "-c",
                 # El pool se hereda del perfil por defecto: así funciona igual en
                 # una caja con btrfs (nodos copy-on-write) que con directorios.
-                'POOL="$(incus profile device get default root pool 2>/dev/null || echo default)"; '
-                'incus profile device add netseclab root disk path=/ "pool=$POOL"',
+                ('POOL="$(incus profile device get default root pool 2>/dev/null || echo default)"; '
+                'incus profile device add netseclab root disk path=/ "pool=$POOL"'),
             ],
             note="root disk for the nodes (same storage pool as the default profile)",
         )
@@ -360,7 +360,7 @@ def build(
             '[ -z "$faltan" ] && exit 0; '
             "apt-get update -qq && DEBIAN_FRONTEND=noninteractive "
             'apt-get install -y -qq $faltan || '
-            f'echo "AVISO: sin red, no se pudieron instalar:$faltan"'
+            'echo "AVISO: sin red, no se pudieron instalar:$faltan"'
         )
         steps.append(
             Step(

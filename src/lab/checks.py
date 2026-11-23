@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from .errors import Issue, LabErrors
 from .engine.incus import Incus
+from .errors import Issue, LabErrors
 from .model import Topology
 
 PATRONES = {

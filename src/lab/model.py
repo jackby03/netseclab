@@ -506,10 +506,9 @@ def from_dict(raw: dict, path: Path | None = None) -> Topology:
                 sc.add(f"{l_where}.net", f"network {net_name!r} is not defined")
                 continue
             vid = l_data.get("vlan")
-            if vid is not None:
-                if not isinstance(vid, int) or not 1 <= vid <= 4094:
-                    sc.add(f"{l_where}.vlan", "must be between 1 and 4094")
-                    vid = None
+            if vid is not None and (not isinstance(vid, int) or not 1 <= vid <= 4094):
+                sc.add(f"{l_where}.vlan", "must be between 1 and 4094")
+                vid = None
 
             node.links.append(
                 Link(
