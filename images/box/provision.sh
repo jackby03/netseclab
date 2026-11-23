@@ -170,7 +170,6 @@ if ! imagen_existe "lab-node-v1"; then
      echo "user1:netseclab" | chpasswd; \
      sed -i "s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/" /etc/ssh/sshd_config; \
      systemctl enable ssh; \
-     systemctl mask systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service; \
      echo "netseclab node - to leave the console: Ctrl-a then q" >> /etc/issue'
 fi
 
