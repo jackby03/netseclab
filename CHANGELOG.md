@@ -17,6 +17,19 @@
 
 ### Corregido
 
+- **Los nodos con IP fija no tenían rutas hacia los demás segmentos**: las rutas de
+  `networks.<red>.routes` solo se servían por DHCP (opción 121) y un nodo con `ip:` explícita no
+  pide DHCP, así que desde `exta` no se llegaba a la DMZ y `nmap` avisaba de que no podía determinar
+  la ruta. Ahora se aplican también en el arranque del nodo, saltando las redes ya conectadas y los
+  saltos que apuntan al propio nodo.
+- **`lab push` no encontraba la imagen exportada**: `incus image export <alias> <ruta>` escribe
+  `<ruta>.tar.gz` y el comando daba por hecho el nombre exacto, así que fallaba siempre con «does not
+  exist». Ahora se exporta a una carpeta vacía y se publica lo que Incus haya dejado.
+- **`lab up` podía comerse la entrada estándar**: sin pasar `stdin`, los comandos heredaban la
+  entrada del proceso y `incus profile create` interpretaba como perfil YAML lo que viniera de un
+  script lanzado por stdin. El ejecutor ahora cierra la entrada de los comandos.
+- La salida de `lab status` en la documentación decía `RUNNING`; el CLI imprime `Running`, como lo
+  da Incus.
 - **`make box` fallaba en un clon recién hecho**: `images/box/build.sh` estaba versionado sin permiso
   de ejecución, así que en Linux daba `Permission denied`. Ahora los scripts de la caja se versionan
   ejecutables y el `Makefile` los invoca con `bash`, que funciona aunque un clon de Windows pierda el

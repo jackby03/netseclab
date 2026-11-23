@@ -103,6 +103,26 @@ def test_script_de_red_de_un_nodo_multipata(example_net):
     assert "sysctl -q -w net.ipv4.ip_forward=1" in guion
 
 
+def test_las_rutas_del_segmento_llegan_a_los_nodos_con_ip_fija(example_net):
+    """La opción 121 solo la ven los clientes DHCP; con IP fija las rutas se ponen a mano."""
+    guion = netconf.net_script(example_net, example_net.node("exta"))
+    assert "ip route replace 10.5.1.0/24 via 10.5.0.254 dev eth0" in guion
+    assert "ip route replace 10.5.2.0/24 via 10.5.0.254 dev eth0" in guion
+
+
+def test_el_router_no_se_crea_rutas_hacia_si_mismo(example_net):
+    """fw es el siguiente salto: una ruta hacia sí mismo rompería la suya conectada."""
+    guion = netconf.net_script(example_net, example_net.node("fw"))
+    assert "via 10.5.0.254" not in guion
+
+
+def test_las_redes_ya_conectadas_no_llevan_ruta(example_net):
+    """base está en las tres redes: no necesita rutas para llegar a ninguna."""
+    guion = netconf.net_script(example_net, example_net.node("base"))
+    assert "ip route replace 10.5.1.0/24" not in guion
+    assert "ip route replace 10.5.2.0/24" not in guion
+
+
 def test_dhcp_solo_para_quien_no_tiene_ip_fija(workdir):
     ruta = workdir / "dhcp.yaml"
     ruta.write_text(

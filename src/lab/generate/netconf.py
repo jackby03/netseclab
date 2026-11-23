@@ -7,10 +7,45 @@ topología en lugar de escrito a mano.
 
 from __future__ import annotations
 
+import ipaddress
+
 from ..model import Node, Topology
 
 NET_SCRIPT = "/usr/local/sbin/lab-net"
 STARTUP_SCRIPT = "/usr/local/sbin/lab-startup"
+
+
+def _red_propia(node: Node) -> list[ipaddress.IPv4Network]:
+    return [ipaddress.IPv4Network(f"{link.ip}/{link.prefix}", strict=False) for link in node.links]
+
+
+def _es_conectada(node: Node, destino: str) -> bool:
+    """¿El nodo llega a esa red sin pasar por un router? Entonces la ruta sobra."""
+    try:
+        red = ipaddress.IPv4Network(destino, strict=False)
+    except ValueError:
+        return False
+    return any(red == propia or red.subnet_of(propia) for propia in _red_propia(node))
+
+
+def _rutas_de_red(topo: Topology, node: Node) -> list[tuple[str, str, str]]:
+    """Rutas que la red anuncia por DHCP, aplicadas a mano para quien tiene IP fija.
+
+    `networks.<red>.routes` se sirve a los clientes DHCP con la opción 121. Un nodo con `ip:`
+    explícita no pide DHCP, así que sin esto se quedaba sin rutas hacia los demás segmentos y
+    `nmap` desde exta no llegaba a la DMZ. Se saltan las redes que el nodo ya tiene conectadas y
+    los saltos que son el propio nodo: el cortafuegos no necesita una ruta hacia sí mismo.
+    """
+    propias = {link.ip for link in node.links}
+    vistas: set[tuple[str, str]] = set()
+    rutas: list[tuple[str, str, str]] = []
+    for link in node.links:
+        for destino, via in topo.networks[link.net].routes:
+            if via in propias or _es_conectada(node, destino) or (destino, via) in vistas:
+                continue
+            vistas.add((destino, via))
+            rutas.append((destino, via, link.ifname))
+    return rutas
 
 
 def net_script(topo: Topology, node: Node) -> str:
@@ -48,6 +83,13 @@ def net_script(topo: Topology, node: Node) -> str:
             if gw:
                 lineas.append(f"ip route replace default via {gw} dev {link.ifname}")
                 break
+
+    lineas += [
+        "",
+        "# rutas de los segmentos: a los clientes DHCP se las da la opción 121; con IP fija, aquí",
+    ]
+    for destino, via, interfaz in _rutas_de_red(topo, node):
+        lineas.append(f"ip route replace {destino} via {via} dev {interfaz}")
 
     lineas += [
         "",

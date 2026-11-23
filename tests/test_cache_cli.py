@@ -11,12 +11,14 @@ from tynix.cache import FileCache
 
 
 class _Exportador(RecordingRunner):
-    """Simula `incus image export` creando el fichero de destino."""
+    """Simula `incus image export`: escribe el destino con la extensión añadida."""
 
     def run(self, argv, stdin=None):  # type: ignore[override]
         resultado = super().run(argv, stdin)
         if "image export" in " ".join(argv):
-            Path(argv[-1]).write_bytes(b"imagen exportada")
+            # Incus no respeta el nombre exacto: `incus image export <alias> /tmp/x` deja
+            # `/tmp/x.tar.gz`. El simulador hacía lo cómodo y escondía el fallo.
+            Path(str(argv[-1]) + ".tar.gz").write_bytes(b"imagen exportada")
         return resultado
 
 
