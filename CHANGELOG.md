@@ -46,6 +46,9 @@
   él devuelve 401 sin filtrar nada.
 - **El toolset `sniff` pedía `mitmproxy`**, que no está en los repositorios de Debian 13: el `apt`
   del nodo fallaba entero y no se instalaba nada del conjunto. Se retira del catálogo.
+- **El flujo de documentación no era YAML válido**: un `name:` con dos puntos sin comillas hacía que
+  GitHub no creara ni el trabajo y el flujo fallara sin explicación. Corregido, y con una prueba de
+  higiene que parsea todos los ficheros de `.github/workflows/`.
 - La salida de `lab status` en la documentación decía `RUNNING`; el CLI imprime `Running`, como lo
   da Incus.
 - **`make box` fallaba en un clon recién hecho**: `images/box/build.sh` estaba versionado sin permiso
