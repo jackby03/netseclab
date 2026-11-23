@@ -1,6 +1,6 @@
 # Cambios
 
-## Sin publicar
+## 0.3.0 — distribución firmada de laboratorios
 
 ### Añadido
 
