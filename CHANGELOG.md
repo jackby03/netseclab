@@ -12,6 +12,11 @@
 - **Descarga de paquetes por URL**: `lab unpack https://…/lab.labpack` se trae el paquete a un
   directorio temporal, verifica y extrae. La firma se busca en `<url>.sig` y la clave pública puede
   ser también una URL, de modo que un bucket estático sirve como repositorio del curso.
+- **Pruebas de la caja fuera del CI**: `tools/probar-caja.sh` arranca el artefacto en QEMU con un
+  overlay desechable y ejecuta `tools/comprobar-caja.sh` dentro de la VM: laboratorio de siete nodos,
+  ciclo `lab down`/`lab up`, `nmap`, ejercicio completo, captura, snapshots, paquetes firmados, caché
+  de imágenes y consola web. `tools/pruebas-humanas.md` es la lista de lo que se comprueba a mano en
+  VMware una vez por versión.
 - Los errores de un `.labpack` se presentan como problemas del paquete («issues in the labpack») y no
   de la topología.
 
