@@ -110,18 +110,23 @@ def verify(
     signers: Sequence[Path],
     *,
     signature: Path | None = None,
+    label: str | None = None,
 ) -> str:
     """Comprueba que la firma la hizo alguna de las claves dadas.
+
+    `label` es el nombre con el que se enseña el paquete en los mensajes: si se descargó de una URL,
+    la ruta temporal no le dice nada a quien lo lee.
 
     Devuelve la línea de `ssh-keygen` con la huella de la clave que firmó, que es lo que se le
     enseña al alumno: «Good "netseclab" signature ... key SHA256:…».
     """
+    nombre = label or str(labpack)
     firma = signature or signature_path(labpack)
     if not labpack.is_file():
-        raise SignatureError(f"{labpack} does not exist")
+        raise SignatureError(f"{nombre} does not exist")
     if not firma.is_file():
         raise SignatureError(
-            f"{labpack} is not signed (missing {firma.name}): "
+            f"{nombre} is not signed (missing {firma.name}): "
             "ask the author for the .sig or drop --signer"
         )
     if not signers:
@@ -155,7 +160,10 @@ def verify(
 
     if resultado.returncode != 0:
         detalle = (resultado.stderr or resultado.stdout).strip() or "signature does not match"
-        raise SignatureError(f"{labpack} is not signed by the expected key: {detalle}")
+        raise SignatureError(
+            f"{nombre} is not signed by the expected key: it changed after signing "
+            f"or someone else signed it ({detalle})"
+        )
     salida = resultado.stdout.strip().splitlines()
     return salida[0] if salida else "signature verified"
 

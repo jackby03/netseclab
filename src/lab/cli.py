@@ -595,7 +595,7 @@ def cmd_unpack(args) -> int:
                 download(valor, _carpeta() / f"signer-{i}.pub") if is_url(valor) else Path(valor)
                 for i, valor in enumerate(args.signer)
             ]
-            firmado = verify(paquete, claves, signature=firma)
+            firmado = verify(paquete, claves, signature=firma, label=args.labpack)
 
         extraidos = desempaquetar(paquete, Path(args.to))
     except SignatureError as exc:
