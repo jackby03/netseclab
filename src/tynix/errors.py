@@ -14,3 +14,7 @@ class InvalidLockError(TynixError):
         super().__init__(f"{where}: {detail}")
         self.where = where
         self.detail = detail
+
+
+class CacheError(TynixError):
+    """Un elemento de la caché no se puede traer, verificar o publicar."""

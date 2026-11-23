@@ -106,7 +106,7 @@ max-positional-args = 8
 ]
 "src/lab/model.py" = ["PLR0912", "PLR0915"]  # validador de la topología
 "src/lab/plan.py" = ["PLR0912"]              # constructor del plan: una fase por bloque
-"src/lab/cli.py" = ["PLR0912", "PLR0911"]    # tabla de subcomandos y de casos
+"src/lab/cli.py" = ["PLR0912", "PLR0911", "PLR0915"]  # tabla de subcomandos
 "src/lab/web.py" = ["E501"]                  # HTML y JavaScript embebidos
 "images/**" = ["S603", "S607"]
 

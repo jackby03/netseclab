@@ -4,6 +4,10 @@
 
 ### Añadido
 
+- **Caché de imágenes** (`tynix.cache`): un directorio —el bucket montado, un pendrive, una carpeta
+  compartida— o una URL de solo lectura. Cada entrada lleva su `sha256`; al traer una imagen se
+  verifica y, si no coincide, no se importa.
+- **`lab push` / `lab pull`**: publicar una imagen en la caché y traerla verificada desde el bucket.
 - **Entornos en la topología**: un nodo puede declarar `environment:` (base + paquetes) en vez de una
   imagen concreta. El plan resuelve el entorno a un nombre direccionado por contenido, construye la
   imagen si no está y la publica con su manifiesto. Dos nodos con el mismo entorno comparten imagen.

@@ -99,6 +99,12 @@ class Incus:
     def borrar_imagen(self, alias: str) -> None:
         self._run("image", "delete", alias)
 
+    def exportar_imagen(self, alias: str, destino: str) -> None:
+        self._run("image", "export", alias, destino)
+
+    def importar_imagen(self, fichero: str, alias: str) -> None:
+        self._run("image", "import", fichero, "--alias", alias)
+
     def snapshots(self, nodo: str) -> list[str]:
         """Nombres de los snapshots de una instancia.
 

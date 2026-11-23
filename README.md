@@ -89,6 +89,8 @@ lab snapshot lab/examples/fuzz-evasion.yaml --name antes-del-ataque
 lab reset lab/examples/fuzz-evasion.yaml     # vuelve a "initial" en segundos
 lab check lab/exercises/06-fuzz-evasion.yaml
 lab gc lab/examples/example.net.yaml --yes   # borra imágenes que nadie usa
+lab push lab-node-v1 --to /mnt/bucket        # publica una imagen en la caché
+lab pull lab-node-v1 --from https://bucket.universidad.edu/tynix
 lab web lab/examples/fuzz-evasion.yaml       # consolas por navegador en :8080
 ```
 
