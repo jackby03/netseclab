@@ -252,6 +252,26 @@ Medido en la caja construida y probada en QEMU con KVM:
 Las cifras del diseño original (RAM ~900 MB, artefacto ~1,5 GB) se han cumplido salvo el artefacto,
 que se queda en 1,9 GB por las cuatro imágenes de nodo que llevan las herramientas dentro.
 
+### El almacenamiento es parte del producto
+
+El driver de almacenamiento por defecto de Incus (`dir`) **copia la imagen completa para cada
+contenedor**. Con imágenes de nodo de ~1,2 GB, siete nodos son 8,4 GB y el disco de 12 GB se llena;
+el síntoma es un `No space left on device` al escribir cualquier cosa, incluso la respuesta de un
+ejercicio.
+
+Por eso la caja crea un pool **btrfs** sobre un fichero y apunta ahí el perfil de los nodos: con
+copy-on-write los nodos comparten bloques con la imagen y cada uno ocupa decenas de megas. Si el pool
+no se puede crear (kernel sin btrfs, por ejemplo), el provisionamiento avisa y sigue con `dir`, pero
+entonces el perfil `full` de siete nodos no cabe.
+
+| Driver | 7 nodos | Artefacto |
+|---|---|---|
+| `dir` | ~8,4 GB | no cabe en 12 GB |
+| `btrfs` (CoW) | ~2–3 GB | cabe con holgura |
+
+La lección: en un laboratorio de contenedores, el espacio en disco no es un detalle de despliegue,
+es un requisito de diseño que se manifiesta en la cara del usuario final.
+
 ---
 
 ## 9. Estructura del repositorio
