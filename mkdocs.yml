@@ -52,6 +52,7 @@ nav:
       - Imágenes: reference/images.md
   - Diseño:
       - Origen: design/origins.md
+      - SIEM ligero: design/siem.md
 
 markdown_extensions:
   - admonition
