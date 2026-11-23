@@ -91,6 +91,8 @@ lab check lab/exercises/06-fuzz-evasion.yaml
 lab gc lab/examples/example.net.yaml --yes   # borra imágenes que nadie usa
 lab push lab-node-v1 --to /mnt/bucket        # publica una imagen en la caché
 lab pull lab-node-v1 --from https://bucket.universidad.edu/tynix
+lab pack lab/examples/example.net.yaml --out ejemplo.labpack
+lab unpack ejemplo.labpack --to /tmp/laboratorio
 lab web lab/examples/fuzz-evasion.yaml       # consolas por navegador en :8080
 ```
 

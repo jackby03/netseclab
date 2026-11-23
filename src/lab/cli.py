@@ -40,6 +40,8 @@ from .environments import lock_from
 from .errors import LabErrors
 from .exercise import load as load_exercise
 from .images import build_plan, listar_imagenes, load_recipe
+from .labpack import pack as empaquetar
+from .labpack import unpack as desempaquetar
 from .model import load
 from .plan import Plan, build
 from .tmp import carpeta_temporal
@@ -520,6 +522,38 @@ def cmd_hash(args) -> int:
     return 0
 
 
+def cmd_pack(args) -> int:
+    """Crea un .labpack con la topología, sus ficheros y el lock si existe."""
+    rutas = [Path(args.topology)] + [Path(p) for p in args.file]
+    rutas += [Path(e) for e in args.exercise]
+    lock = Path(args.lock)
+    if lock.exists():
+        rutas.append(lock)
+    try:
+        destino = empaquetar(
+            rutas,
+            Path(args.out),
+            name=args.name or Path(args.topology).stem,
+            root=Path.cwd(),
+        )
+    except LabErrors as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(f"packed {len(rutas)} files into {destino}")
+    return 0
+
+
+def cmd_unpack(args) -> int:
+    """Verifica un .labpack y lo extrae."""
+    try:
+        extraidos = desempaquetar(Path(args.labpack), Path(args.to))
+    except LabErrors as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(f"{len(extraidos)} files extracted into {args.to}")
+    return 0
+
+
 def cmd_push(args) -> int:
     """Publica una imagen en una caché (el bucket montado o una carpeta compartida)."""
     if _sin_incus():
@@ -843,6 +877,20 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("hash", help="sha256 of an answer, to publish exercises without the value")
     p.add_argument("value")
     p.set_defaults(func=cmd_hash)
+
+    p = sub.add_parser("pack", help="bundle a topology, its files and the lock into a .labpack")
+    p.add_argument("topology")
+    p.add_argument("--out", required=True, help="output .labpack")
+    p.add_argument("--name", help="lab name (default: the topology file name)")
+    p.add_argument("--file", action="append", default=[], help="extra file to include")
+    p.add_argument("--exercise", action="append", default=[], help="exercise to include")
+    p.add_argument("--lock", default="lab.lock", help="lock file to include if it exists")
+    p.set_defaults(func=cmd_pack)
+
+    p = sub.add_parser("unpack", help="verify a .labpack and extract it")
+    p.add_argument("labpack")
+    p.add_argument("--to", required=True, help="destination directory")
+    p.set_defaults(func=cmd_unpack)
 
     p = sub.add_parser("push", help="publish a lab image into a cache directory")
     p.add_argument("alias")

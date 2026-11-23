@@ -4,6 +4,9 @@
 
 ### Añadido
 
+- **Paquetes de laboratorio** (lab pack / lab unpack): un .labpack con la topología, los
+  ejercicios, los ficheros del escenario y el lab.lock. Al abrirlo se verifica el sha256 de cada
+  fichero antes de escribir nada, y se rechazan las rutas que intenten salir del destino.
 - **Caché de imágenes** (`tynix.cache`): un directorio —el bucket montado, un pendrive, una carpeta
   compartida— o una URL de solo lectura. Cada entrada lleva su `sha256`; al traer una imagen se
   verifica y, si no coincide, no se importa.
