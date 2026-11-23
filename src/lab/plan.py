@@ -149,6 +149,40 @@ def _implicit_packages(topo: Topology, node: Node) -> set[str]:
     return extra
 
 
+def _espera_de_arranque(nodes: list[Node]) -> list[Step]:
+    """Un paso por nodo que espera a que termine de arrancar y tenga sus direcciones.
+
+    `lab up` no debe terminar mientras los nodos arrancan: el primer `nmap` o `lab check` llegaría a
+    una web que todavía no escucha, o a un nodo al que el DHCP aún no le ha dado su dirección. El
+    tope evita quedarse colgado si algo no llega nunca.
+    """
+    pasos: list[Step] = []
+    for node in nodes:
+        direcciones = " ".join(link.ip for link in node.links if link.ip)
+        comprobacion = (
+            f'faltan=""; for ip in {direcciones}; do '
+            'ip -4 addr show | grep -q "inet $ip/" || faltan="$faltan $ip"; done; '
+            '[ -z "$faltan" ] && exit 0'
+            if direcciones
+            else "exit 0"
+        )
+        espera = (
+            "for _ in $(seq 1 60); do "
+            "estado=$(systemctl is-system-running 2>/dev/null || true); "
+            'case "$estado" in running|degraded) ;; *) sleep 1; continue ;; esac; '
+            f"{comprobacion}; "
+            "sleep 1; done; exit 0"
+        )
+        pasos.append(
+            Step(
+                "wait",
+                argv=["incus", "exec", node.name, "--", "sh", "-c", espera],
+                note=f"{node.name}: wait until it finishes booting",
+            )
+        )
+    return pasos
+
+
 def build(
     topo: Topology,
     profile: str | None = None,
@@ -558,22 +592,7 @@ def build(
             )
 
     # ── los nodos terminan de arrancar
-    # `lab up` no debe terminar mientras systemd sigue lanzando servicios dentro de los nodos: el
-    # primer `nmap` o `lab check` llegaría a una web que todavía no escucha y el puerto saldría
-    # filtrado. Se espera a que no queden trabajos pendientes, con tope para no colgarse.
-    for node in nodes:
-        espera = (
-            'for _ in $(seq 1 20); do [ -z "$(systemctl list-jobs --no-legend)" ] && exit 0; '
-            "sleep 1; done; exit 0"
-        )
-        steps.append(
-            Step(
-                "wait",
-                argv=["incus", "exec", node.name, "--", "sh", "-c", espera],
-                note=f"{node.name}: wait until it finishes booting",
-            )
-        )
-
+    steps.extend(_espera_de_arranque(nodes))
     # ── ajustes de conmutación
     # Manipular puertos del bridge y el demonio de OVS necesita root; el usuario
     # del laboratorio no tiene por qué serlo.

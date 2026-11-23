@@ -60,33 +60,43 @@ def net_script(topo: Topology, node: Node) -> str:
         lineas += [
             f"# {link.ifname} -> red {net.name} ({net.cidr})",
             f"ip link set {link.ifname} up",
-            f"ip addr flush dev {link.ifname}",
         ]
-        if net.addressing == "dhcp" and not link.explicit_ip:
+        if link.ip and (net.addressing != "dhcp" or link.explicit_ip):
+            # Dirección declarada en la topología: se aplica aquí. No se le deja al DHCP para que el
+            # nodo tenga exactamente la misma red en el primer arranque y después de un reinicio; si
+            # la dirección viniera del cliente DHCP de la imagen, un reinicio podía dejarlo sin
+            # rutas y la web de la DMZ salía filtrada desde exta.
             lineas += [
-                f"# DHCP servido por el nodo designado de la red {net.name}",
-                "if command -v dhclient >/dev/null 2>&1; then",
-                f"  dhclient -1 -v {link.ifname} || true",
-                "fi",
+                f"ip addr flush dev {link.ifname}",
+                f"ip addr add {link.ip}/{link.prefix} dev {link.ifname}",
             ]
         else:
             lineas += [
-                f"ip addr add {link.ip}/{link.prefix} dev {link.ifname}",
+                "# sin dirección declarada: DHCP, reintentando mientras el servidor arranca",
+                "for _ in $(seq 1 60); do",
+                f'  ip -4 addr show dev {link.ifname} | grep -q "inet " && break',
+                f"  timeout 5 dhclient -1 -q {link.ifname} 2>/dev/null || true",
+                "  sleep 1",
+                "done",
             ]
         lineas.append("")
 
-    # ruta por defecto: en las redes NAT, o donde el enlace lo pida explícitamente
+    # ruta por defecto: la del enlace que la pida, la de una red NAT o la puerta del segmento.
+    # Antes la servía el DHCP (opción 3); al aplicarla aquí, un nodo puede contestar al tráfico que
+    # le llega de otro segmento aunque nadie le haya dado una concesión.
+    propias = {link.ip for link in node.links}
     for link in node.links:
         net = topo.networks[link.net]
-        if net.type == "nat" or link.default:
-            gw = link.gateway or net.gateway
-            if gw:
-                lineas.append(f"ip route replace default via {gw} dev {link.ifname}")
-                break
+        gw = link.gateway or net.gateway
+        if not gw or gw in propias:
+            continue
+        if net.type == "nat" or link.default or net.addressing == "dhcp":
+            lineas.append(f"ip route replace default via {gw} dev {link.ifname}")
+            break
 
     lineas += [
         "",
-        "# rutas de los segmentos: a los clientes DHCP se las da la opción 121; con IP fija, aquí",
+        "# rutas de los segmentos, para que un nodo con dirección fija llegue a los demás",
     ]
     for destino, via, interfaz in _rutas_de_red(topo, node):
         lineas.append(f"ip route replace {destino} via {via} dev {interfaz}")

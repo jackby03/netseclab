@@ -28,10 +28,13 @@
 - **`lab up` podía comerse la entrada estándar**: sin pasar `stdin`, los comandos heredaban la
   entrada del proceso y `incus profile create` interpretaba como perfil YAML lo que viniera de un
   script lanzado por stdin. El ejecutor ahora cierra la entrada de los comandos.
-- **Los nodos reiniciados se quedaban a medio arrancar**: `systemd-networkd-wait-online` esperaba
-  indefinidamente una interfaz que gestiona `lab-net`, así que `network-online.target` no llegaba y
-  servicios como `apache2` y `dnsmasq` no arrancaban: la web de la DMZ aparecía filtrada. La imagen
-  de nodo enmascara esa espera, porque la red la configura el laboratorio, no networkd.
+- **La red de los nodos dependía de la concesión DHCP del primer arranque**: el cliente DHCP de la
+  imagen ponía dirección, rutas y puerta de enlace, y `lab-net` después las pisaba con la dirección
+  de la topología. En el primer arranque ganaba el DHCP y todo funcionaba; tras un reinicio, el nodo
+  se quedaba con una dirección y sin ruta de vuelta, así que la web de la DMZ no contestaba desde
+  `exta` y el ejercicio 01 no pasaba. Ahora `lab-net` configura dirección, rutas de segmento y ruta
+  por defecto a partir de la topología; el DHCP solo se usa cuando el nodo no declara dirección. La
+  imagen de nodo enmascara `systemd-networkd` para que no haya dos gestores de red peleándose.
 - **`lab up` después de `lab down` fallaba**: `incus launch` no arranca una instancia que ya existe y
   el primer `incus exec` daba «Instance is not running». El plan añade un `incus start` por nodo,
   que sobre algo ya en marcha es un no-op.
