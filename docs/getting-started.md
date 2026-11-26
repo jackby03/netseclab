@@ -5,7 +5,7 @@ Esta página deja un laboratorio en marcha y corregido en la caja en menos de ci
 ## Antes de empezar
 
 El uso previsto es la caja: una VM de VMware con Debian 13, Incus, el CLI `lab` y las imágenes de
-nodo ya construidas. El artefacto ocupa unos 1,9 GB y se abre con VMware Workstation o Player. La caja
+nodo ya construidas. El artefacto ocupa unos 2,3 GB y se abre con VMware Workstation o Player. La caja
 necesita 2 vCPU, 2 GB de RAM y 12 GB de disco; no hace falta activar la virtualización anidada.
 
 Para leer, validar y renderizar topologías desde el repositorio no hace falta Incus. Para ejecutar

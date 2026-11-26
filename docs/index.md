@@ -34,9 +34,9 @@ en YAML y el CLI `lab` lo levanta, lo fotografía, lo restaura y corrige los eje
 | Diseño | Procedencia del proyecto y decisiones que lo separan de NETinVM |
 
 !!! note "Estado"
-    La versión publicada es la **0.2.0**. Están implementados el ciclo de vida, los ejercicios, las
+    La versión publicada es la **0.3.0**. Están implementados el ciclo de vida, los ejercicios, las
     consolas, la captura, los entornos reproducibles de tynix, la caché de imágenes y los paquetes
-    `.labpack` con firma y descarga por URL (sin publicar todavía). La salida a Internet por segmento
+    `.labpack` con firma y descarga por URL. La salida a Internet por segmento
     (`type: nat`) está implementada; el atajo `--uplink`, las herramientas por nodo y los nodos
     Windows están pendientes.
 

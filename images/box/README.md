@@ -8,7 +8,7 @@ imágenes base cacheadas, para que funcione **sin Internet**.
 | | |
 |---|---|
 | SO | Debian 13 (trixie), sin escritorio |
-| Tamaño | **1,9 GB** el `.tar.gz` (3,3 GB el `.vmdk` descomprimido) |
+| Tamaño | **2,3 GB** el `.tar.gz` (4,0 GB el `.vmdk` descomprimido) |
 | Disco | 12 GB, de los que usa ~3 GB |
 | RAM | 2 GB (sube a 4 GB para el perfil `full` con 7 nodos) |
 | Incus | 4 imágenes de nodo con las herramientas dentro |
@@ -18,7 +18,7 @@ imágenes base cacheadas, para que funcione **sin Internet**.
 | Anidamiento | **ninguno**: los nodos son contenedores |
 
 > El tamaño depende de `discard=unmap` y `fstrim` al apagar: sin eso el qcow2
-> conserva los bloques liberados y el artefacto sale de 4,5 GB en vez de 1,9.
+> conserva los bloques liberados y el artefacto sale de 4,5 GB en vez de 2,3.
 
 ## Construirla
 

@@ -154,28 +154,40 @@ lab validate "lab/exercises/*.yaml"
 Si tu cambio toca el motor, añade la prueba con `RecordingRunner` en vez de pedirle a quien revise
 que tenga Incus.
 
+## Probar la caja
+
+El CI prueba el modelo, los generadores y el CLI con un ejecutor simulado. Lo que depende de Incus,
+systemd y de la red de verdad se comprueba dentro de la VM:
+
+```bash
+make box                                # ~15 min en Linux con QEMU/KVM (o WSL2)
+WORK=build/box tools/probar-caja.sh     # la arranca y comprueba dentro: tiene que dar 0 fallos
+```
+
+`tools/probar-caja.sh` usa un overlay desechable, así que el disco que se publica no queda tocado.
+Las comprobaciones están en `tools/comprobar-caja.sh`: laboratorio de siete nodos, ciclo `lab down` y
+`lab up`, `nmap` (80 abierto, 443 cerrado, 22 filtrado), DNS, el ejercicio de reconocimiento, captura,
+snapshots, paquetes firmados, `lab lock`, `lab gc`, `lab push`/`lab pull` y la consola web con y sin
+token.
+
+Después van las pruebas humanas en VMware, una vez por versión:
+[tools/pruebas-humanas.md](tools/pruebas-humanas.md).
+
 ## Trabajo pendiente
 
 Tareas abiertas del proyecto. Cada una indica el comando o el resultado que la cierra.
 
-### 1. Reconstruir la caja con la versión actual
+### 1. Publicar el artefacto de la caja
 
-La caja publicada lleva el CLI de la 0.1.0. El artefacto tiene que rehacerse con el código actual y
-pasar las comprobaciones dentro de la VM:
+La caja de la 0.3.0 está construida y validada: unos 2,3 GB, y su `SHA256SUMS` está publicado en las
+notas del release. GitHub no acepta ficheros de más de 2 GB en una release, así que hay que elegir
+destino:
 
-```bash
-make box
-WORK=build/box tools/probar-caja.sh     # la arranca en QEMU y comprueba dentro
-```
+- **Bucket universitario**: sin límite; el destino natural si el curso adopta el laboratorio.
+- **Partir el artefacto** en dos mitades, con instrucciones para unirlo.
+- **Zenodo**: además da DOI a la versión publicada.
 
-`tools/probar-caja.sh` usa un overlay desechable, así que el disco que se publica queda intacto. Las
-comprobaciones viven en `tools/comprobar-caja.sh`: `lab up` con siete nodos, `lab down` y otra vez
-`lab up`, `nmap` desde `exta` (80 abierto, 443 cerrado, 22 filtrado), el ejercicio de reconocimiento,
-captura, snapshot/reset, paquetes firmados, `lab lock`, `lab gc`, `lab push`/`lab pull` y la consola
-web con y sin token.
-
-Criterio: el guion termina con `0 fallos`. Después, las pruebas con interfaz de verdad (VMware) están
-en [tools/pruebas-humanas.md](tools/pruebas-humanas.md).
+Criterio: el artefacto se descarga desde una URL pública y su `sha256` coincide con el publicado.
 
 ### 2. Revisar los seis ejercicios con criterio docente
 
@@ -195,42 +207,23 @@ Criterio: cada corrección da el resultado esperado dentro de la caja y las solu
 Prestar atención al 05, que exige encontrar el cortafuegos del servidor, y al 06, que depende del
 umbral real de Suricata y del tiempo de espera de la captura.
 
-### 3. Decidir la visibilidad del repositorio
-
-Antes de abrirlo:
-
-- revisar el README renderizado en GitHub, que es lo primero que verá quien llegue;
-- decidir si la caja se publica como release de GitHub, en un bucket de la universidad o en ambos;
-- si se publica en Zenodo, conectar el repositorio para que cada release tenga DOI.
-
-Criterio: el repositorio se abre con un README correcto y una decisión escrita sobre el artefacto.
-
-### 4. Publicar la caja
-
-Elegir destino y dejarlo documentado en el README:
-
-- **Release de GitHub**: un clic, pero ~1,9 GB por release y un límite de 2 GB por fichero.
-- **Bucket universitario**: sin límite, pero hace falta que quien lo descargue conozca la URL.
-- **Ambos**: el bucket como origen y el release como espejo.
-
-Criterio: el artefacto se descarga desde una URL pública y la caja arranca desde ella.
-
-### 5. Revisar el encaje institucional
+### 3. Revisar el encaje institucional
 
 Un laboratorio que lanza `nmap` y fuerza bruta tiene implicaciones que no son técnicas:
 
-- confirmar que la normativa de la institución permite este tipo de prácticas;
+- confirmar que la normativa de la institución permite este tipo de prácticas; la revisión del
+  director de la carrera es el primer paso;
 - mantener la salida a Internet desactivada por defecto: el tráfico de escaneo saldría con la IP de
-  la institución;
+  la institución; solo se declara con un segmento `type: nat`;
 - si se despliega en un servidor de aula compartido, exigir token en `lab web` y separar la red de
   gestión.
 
 Criterio: hay una nota escrita con las condiciones de uso aceptadas.
 
-### 6. Mantener las versiones
+### 4. Mantener las versiones
 
 - La versión de Debian de la caja está fijada en `DEBIAN_BUILD`. Al cambiarla, reconstruir la caja y
-  volver a pasar los ejercicios.
+  volver a pasar las comprobaciones de `tools/probar-caja.sh` y las pruebas humanas.
 - Los ejercicios dependen de versiones concretas de herramientas (Suricata, ffuf, Apache). El CI
   valida los ficheros, no el comportamiento: la comprobación real se hace en la caja.
 - Cada versión lleva etiqueta, entrada en `CHANGELOG.md` y notas de release. La convención está en
@@ -238,7 +231,7 @@ Criterio: hay una nota escrita con las condiciones de uso aceptadas.
 
 Criterio: la caja y el `CHANGELOG.md` describen la misma versión.
 
-### 7. Construir el SIEM ligero y el laboratorio de SOC
+### 5. Construir el SIEM ligero y el laboratorio de SOC
 
 El diseño está en [docs/design/siem.md](docs/design/siem.md): un motor de reglas en terminal, con
 SQLite y PyYAML, que quepa en el nodo `soc` y que se pueda corregir con casos de eventos preparados.
@@ -249,10 +242,11 @@ replay con pruebas doradas en el CI, integración (receta del nodo `soc` y compr
 Criterio: `siem replay` reproduce un caso con sus alertas esperadas en el CI y el ejercicio de triaje
 se corrige solo.
 
-### 8. Cerrar los pendientes técnicos
+### 6. Cerrar los pendientes técnicos
 
 - Atajo `lab up --uplink` (hoy la salida a Internet se declara con un segmento `type: nat`) y
   grabación/reproducción de Internet.
 - Herramientas por nodo (`tools:`) con copia y ejecución controlada.
 - Escenario de Samba AD para cubrir Active Directory sin nodos Windows.
+- Carpeta compartida con la caja, equivalente al `virtiofs` del original.
 - Nodos Windows: fuera del alcance actual por licencia, tamaño y virtualización anidada.

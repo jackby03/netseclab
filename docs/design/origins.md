@@ -68,7 +68,7 @@ laboratorio se describe en YAML en lugar de en scripts.
 | Aspecto | NETinVM | netseclab |
 |---|---|---|
 | Ejecución | VMs anidadas con kernel propio dentro de `base`. | Una VM de VMware con contenedores de sistema de Incus; sin anidamiento. |
-| Tamaño | ZIP de ~4,7 GB y ~6 GB de RAM. | Caja de ~1,9 GB; siete nodos caben en 2 GB de RAM. |
+| Tamaño | ZIP de ~4,7 GB y ~6 GB de RAM. | Caja de ~2,3 GB; siete nodos caben en 2 GB de RAM. |
 | Topología | Cableada en scripts. | Declarativa en YAML, validada y convertible en plan. |
 | Gestión | libvirt, `virsh`, `virt-manager` y Open vSwitch. | Incus y el CLI `lab`. |
 | Interfaz | Escritorio KDE y lanzadores. | Consola, consolas web y plan renderizable; sin escritorio. |
