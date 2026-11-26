@@ -180,14 +180,14 @@ Tareas abiertas del proyecto. Cada una indica el comando o el resultado que la c
 ### 1. Publicar el artefacto de la caja
 
 La caja de la 0.3.0 está construida y validada: unos 2,3 GB, y su `SHA256SUMS` está publicado en las
-notas del release. GitHub no acepta ficheros de más de 2 GB en una release, así que hay que elegir
-destino:
+notas del release. Los canales están decididos:
 
-- **Bucket universitario**: sin límite; el destino natural si el curso adopta el laboratorio.
-- **Partir el artefacto** en dos mitades, con instrucciones para unirlo.
-- **Zenodo**: además da DOI a la versión publicada.
+- **Beta: SourceForge**, con `tools/publicar-caja.sh` (verifica el checksum antes de subir). GitHub no
+  acepta ficheros de más de 2 GB en una release y SourceForge sí.
+- **Oficial: Zenodo y espejo de la universidad**, cuando la institución lo confirme. Zenodo aporta DOI.
 
-Criterio: el artefacto se descarga desde una URL pública y su `sha256` coincide con el publicado.
+Criterio: la beta se descarga desde SourceForge con el `sha256` publicado; la oficial queda pendiente
+de la universidad.
 
 ### 2. Revisar los seis ejercicios con criterio docente
 

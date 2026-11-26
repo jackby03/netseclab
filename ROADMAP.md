@@ -55,17 +55,21 @@ Linux normal; la reproducibilidad queda debajo.
 
 ## Lo que queda
 
-### 1. Publicar el artefacto de la caja
+### 1. Distribuir la caja
 
-La caja de la 0.3.0 está construida y validada (2,3 GB). No se puede adjuntar a una release de
-GitHub, que limita cada fichero a 2 GB. Opciones, por orden de preferencia:
+La caja de la 0.3.0 está construida y validada (2,3 GB). Canales decididos:
 
-- **Bucket de la universidad**: sin límite, y es el destino natural si el curso lo adopta.
-- **Partir el fichero** en dos mitades documentando cómo unirlas, si no hay alojamiento.
-- **Zenodo**: además da DOI a la versión publicada.
+- **Beta: SourceForge.** No tiene el límite de 2 GB por fichero de GitHub, reparte la descarga entre
+  espejos y da estadísticas. Se publica con `tools/publicar-caja.sh`, que verifica el `SHA256SUMS`
+  antes de subir y devuelve la URL de descarga.
+- **Oficial: Zenodo y espejo de la universidad.** Zenodo da DOI para citar la versión; el espejo
+  institucional da la descarga del curso. Se hará cuando la universidad lo confirme.
 
-Criterio: el artefacto se descarga desde una URL pública, el `SHA256SUMS` del release coincide y la
-caja arranca desde ella.
+Mientras tanto, la caja se construye con `make box` y se comprueba con `WORK=build/box
+tools/probar-caja.sh`.
+
+Criterio: la beta se descarga desde SourceForge y su `sha256` coincide con el publicado; la oficial
+queda pendiente de la universidad.
 
 ### 2. Revisar los seis ejercicios con criterio docente
 
