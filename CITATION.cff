@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+title: netseclab
+message: "Si usas este proyecto en docencia o en investigación, cita esta versión."
+type: software
+authors:
+  - family-names: Del Aguila
+    given-names: Jack
+    email: jackby03@users.noreply.github.com
+repository-code: "https://github.com/jackby03/netseclab"
+url: "https://jackby03.github.io/netseclab/"
+license: GPL-3.0-or-later
+version: 0.3.0
+date-released: "2026-11-25"
+keywords:
+  - network security
+  - teaching laboratory
+  - Incus
+  - containers
+  - red team
+  - blue team
+abstract: >-
+  netseclab es un laboratorio de seguridad en redes para enseñar, practicar y evaluar. El laboratorio
+  se describe en YAML, se levanta en una sola máquina virtual con contenedores de sistema de Incus y
+  se restaura en segundos. Incluye corrección automática de ejercicios, captura por segmento y
+  paquetes de laboratorio firmados.
+references:
+  - type: software
+    title: NETinVM
+    authors:
+      - family-names: Pérez
+        given-names: Carlos
+    url: "https://informatica.uv.es/~carlos/docencia/netinvm/"
+    notes: >-
+      Proyecto original en el que se inspira netseclab. No se reutiliza su código ni sus imágenes.

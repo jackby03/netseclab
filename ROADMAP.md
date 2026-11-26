@@ -1,7 +1,7 @@
 # Plan de trabajo
 
-Estado: **v0.2.0 publicada**. El código está completo para lo que se propuso; lo que queda es
-empaquetado, contenido y publicación.
+Estado: **v0.3.0 publicada**. El código cubre lo que se propuso y la caja está construida y probada.
+Lo que queda es contenido docente, el SIEM ligero y la publicación del artefacto.
 
 ## Hecho
 
@@ -13,8 +13,8 @@ empaquetado, contenido y publicación.
 - Captura por segmento en tres modos: switch, hub y puerto espejo OVS.
 - Ejercicios con hechos del laboratorio y respuestas estrictas con hash, puntuación e informe.
 - Consolas en el navegador.
-- Caja de VMware reproducible: 1,9 GiB, siete nodos en 2 GB de RAM. **Construida y validada en QEMU
-  y en VMware.**
+- Caja de VMware reproducible: 1,9 GiB, siete nodos en 2 GB de RAM. Construida y validada en QEMU y
+  en VMware.
 
 ### v0.2.0 — tynix y distribución
 
@@ -31,43 +31,73 @@ Linux normal; la reproducibilidad queda debajo.
 - ✅ **Paquetes de laboratorio**: `lab pack` y `lab unpack`, con verificación de cada fichero antes de
   escribir nada y protección contra rutas fuera del destino.
 
-### Distribución de laboratorios (sin publicar)
+### v0.3.0 — distribución firmada y caja probada
 
-- ✅ **Firma de paquetes**: `lab pack --sign` firma el `.labpack` con OpenSSH (`ssh-keygen -Y sign`) y
-  `lab unpack --signer` exige que lo haya firmado una de las claves dadas. Sin GPG, sin llavero y sin
-  autoridad de certificación: la clave pública del profesor es el único dato que hay que repartir.
+- ✅ **Firma de paquetes**: `lab pack --sign` con OpenSSH (`ssh-keygen -Y sign`) y
+  `lab unpack --signer`, que comprueba la firma antes de extraer nada. Sin GPG ni llavero: la clave
+  pública del profesor es el único dato que hay que repartir.
 - ✅ **Descarga por URL**: `lab unpack https://…/lab.labpack` trae el paquete y su firma, verifica y
-  extrae. La clave pública también puede venir de una URL.
+  extrae; la clave pública también puede venir de una URL.
+- ✅ **Red determinista de los nodos**: direcciones, rutas de segmento y ruta por defecto salen de la
+  topología; `lab-net` enmascara `systemd-networkd` y escribe el DNS del laboratorio o el de la red
+  NAT. Un nodo reiniciado se comporta igual que uno recién creado.
+- ✅ **Salida a Internet por segmento**: `type: nat` con NAT y DNS por la puerta; el escenario lo
+  declara y el resto sigue aislado.
+- ✅ **Arreglos encontrados al probar la caja en real**: `lab push` encontrando la imagen exportada,
+  `lab up` tras `lab down`, espera de arranque, la portada de `lab web` exigiendo token, el toolset
+  `sniff` sin `mitmproxy` (no está en Debian 13), el flujo de documentación como YAML válido y los
+  scripts de la caja con permiso de ejecución.
+- ✅ **Pruebas dentro de la caja**: `tools/probar-caja.sh` arranca el artefacto en QEMU con un overlay
+  desechable y ejecuta 31 comprobaciones reales; `tools/pruebas-humanas.md` recoge lo que se revisa a
+  mano en VMware.
+- ✅ **Documentación de producto**: sitio con `mkdocs-material`, referencia de topología, CLI e
+  imágenes, guías de operación y distribución, y el diseño del [SIEM ligero](docs/design/siem.md).
 
 ## Lo que queda
 
-### 1. Reconstruir el artefacto con la 0.2.0
+### 1. Publicar el artefacto de la caja
 
-La caja publicada lleva el CLI de la 0.1.0. El código nuevo está en el repositorio, pero el artefacto
-hay que volver a construirlo:
+La caja de la 0.3.0 está construida y validada (2,3 GB). No se puede adjuntar a una release de
+GitHub, que limita cada fichero a 2 GB. Opciones, por orden de preferencia:
 
-```bash
-make box           # ~15 minutos
-```
+- **Bucket de la universidad**: sin límite, y es el destino natural si el curso lo adopta.
+- **Partir el fichero** en dos mitades documentando cómo unirlas, si no hay alojamiento.
+- **Zenodo**: además da DOI a la versión publicada.
 
-Y después comprobar dentro de la caja lo que aún no se ha ejecutado en real: `lab pack`, `lab unpack`,
-`lab push`, `lab pull`, `lab lock` y `lab gc`.
+Criterio: el artefacto se descarga desde una URL pública, el `SHA256SUMS` del release coincide y la
+caja arranca desde ella.
 
-### 2. El laboratorio de Samba AD
+### 2. Revisar los seis ejercicios con criterio docente
+
+Los ejercicios están validados en estructura y en la caja, pero falta la lectura de profesor:
+enunciado, tareas, pistas, comprobaciones y solución de cada uno. Prestar atención al 05
+(cortafuegos del servidor) y al 06 (umbral real de Suricata y tiempo de captura).
+
+Criterio: cada ejercicio se entiende sin explicaciones y su solución puntúa completo.
+
+### 3. El SIEM ligero y el laboratorio de SOC
+
+Diseñado en [docs/design/siem.md](docs/design/siem.md): motor de reglas en terminal con SQLite y
+PyYAML, casos reproducibles para corregir y probar en el CI, y un nodo `soc` que aprovecha la
+telemetría que ya existe. Cinco pasos: núcleo, reglas, replay, integración y ejercicio de triaje.
+
+Criterio: `siem replay` reproduce un caso con sus alertas esperadas en el CI y el ejercicio de triaje
+se corrige solo.
+
+### 4. El laboratorio de Samba AD
 
 El escenario de intrusión real con contenedores: controlador de dominio con Samba, SMB anónimo,
 credenciales en ficheros y banderas (usuario anónimo, ID de John Doe, contraseña encontrada), más el
-informe escrito.
-
-No es prioridad ahora. La infraestructura está lista: `environment:` para el DC, banderas para
-corregir y `labpack` para distribuirlo.
+informe escrito. La infraestructura está lista: `environment:` para el DC, banderas para corregir y
+`labpack` para distribuirlo.
 
 ## Más adelante
 
-- **Salida a Internet declarada** (`--uplink`): un escenario pide conexión y el resto sigue aislado.
+- **Atajo `--uplink`**: declarar la salida a Internet sin añadir el segmento a mano.
 - **Grabación y reproducción de Internet** para prácticas de OSINT sin depender de la red real.
 - **Herramientas por nodo** (`tools:`) sin pasar por un toolset completo.
 - **Puertos concretos en las políticas** y enlaces punto a punto.
+- **Carpeta compartida** con la caja, equivalente al `virtiofs` del original.
 - **Plataforma web**: índice de laboratorios publicados, búsqueda y documentación de cada actividad.
   Empieza por un índice en git, no por una aplicación.
 

@@ -18,7 +18,7 @@ Los mensajes del CLI están en inglés; esta documentación está en español. L
 
 ```bash
 lab --version
-# netseclab 0.2.0
+# netseclab 0.3.0
 ```
 
 | Código de salida | Significado |

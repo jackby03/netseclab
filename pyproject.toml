@@ -41,9 +41,10 @@ dev = [
 lab = "lab.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/jackby03/netseclab"
+Homepage = "https://jackby03.github.io/netseclab/"
 Repository = "https://github.com/jackby03/netseclab"
 Issues = "https://github.com/jackby03/netseclab/issues"
+Changelog = "https://github.com/jackby03/netseclab/blob/main/CHANGELOG.md"
 Documentation = "https://github.com/jackby03/netseclab/tree/main/docs"
 
 [tool.setuptools.packages.find]

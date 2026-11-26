@@ -151,7 +151,7 @@ Los nodos usan por defecto 1 vCPU y 256 MB de RAM; se cambian con `resources:` e
 imágenes con servicios pesados necesitan más.
 
 La caja se dimensionó con 2 vCPU y 2 GB de RAM. Las medidas durante la validación fueron: artefacto
-de ~1,9 GB, ~4,2 GB de disco con siete nodos y snapshots, y ~1,3 GB de RAM libres con todo levantado.
+de ~2,3 GB, ~4,2 GB de disco con siete nodos y snapshots, y ~1,3 GB de RAM libres con todo levantado.
 El disco de la caja es de 12 GB virtuales. Un escenario con más nodos o con un SIEM completo necesita
 más RAM de la que ofrece ese dimensionado.
 

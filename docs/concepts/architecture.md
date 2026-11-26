@@ -165,7 +165,7 @@ Medido durante la validación de la caja:
 
 | | Medido |
 |---|---|
-| Artefacto (`.tar.gz`) | ~1,9 GB |
+| Artefacto (`.tar.gz`) | ~2,3 GB |
 | VMDK descomprimido | ~3,5 GB |
 | Disco de la caja | 12 GB virtuales; ~4,2 GB usados con siete nodos y snapshots |
 | RAM de la caja | 2 GB; ~1,3 GB libres con siete nodos |
