@@ -113,5 +113,9 @@ informe escrito. La infraestructura está lista: `environment:` para el DC, band
   tarjeta host-only de VMware), pero esa VM queda fuera de la gestión del laboratorio. Si algún día
   se retoma, el gestor sería un script `vmrun` generado desde la propia topología, no un orquestador
   nuevo.
-- **Ejecutar el laboratorio directamente en macOS o Windows sin VM**: descartado, Incus necesita
-  Linux.
+- **Anfitriones nativos sin la caja (macOS y Windows)**: aparcado hasta que maduren. Apple
+  `container` (una micro-VM por contenedor, imágenes OCI) y WSL containers (`wslc`) cubren el caso
+  «contenedor de aplicación», no el contenedor de sistema con varias NICs, bridges y OVS que necesita
+  el laboratorio. Cuando soporten init completo y redes con bridges, la propuesta sería un artefacto
+  por plataforma que ejecute motor y nodos nativamente, sin la caja de VMware, con la persistencia
+  resuelta por ficheros de estado y confirmación en el anfitrión en lugar de snapshots de Incus.
